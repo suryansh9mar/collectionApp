@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import React, { useState , useEffect } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../assests/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const initialCustomersData = [
-  { id: '1', name: 'John Doe', phone: '123-456-7890', address: '123 Main St, City A', dueAmount: 1500 },
-  { id: '2', name: 'Jane Smith', phone: '987-654-3210', address: '456 Elm St, City B', dueAmount: 3000 },
+  { id: '1', name: 'John Doe', phone: '123-456-7890', address: '123 Main St, City A', dueAmount: 1500 ,collection:[{ id: '1', date: '2024-09-01', amount: 500 },
+    { id: '2', date: '2024-09-10', amount: 200 }] ,},
+  { id: '2', name: 'Jane Smith', phone: '987-654-3210', address: '456 Elm St, City B', dueAmount: 3000,collection:[], },
   // Add more customers here
 ];
+
+
 
 const CustomerScreen = () => {
   const [customers, setCustomers] = useState(initialCustomersData);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
+
+  useEffect(async() => {
+   const setItem= await AsyncStorage.setItem('customers', JSON.stringify(customers))
+   setItem()
+ }, [setCustomers])
 
   const handleDetails = (customer) => {
     setSelectedCustomer(customer);
@@ -24,6 +44,14 @@ const CustomerScreen = () => {
   const handleCustomerClick = (customer) => {
     navigation.navigate('Collection', { customer, setCustomers });
   };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+  };
+
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const renderItem = ({ item }) => (
     <View style={styles.customerCard}>
@@ -40,11 +68,24 @@ const CustomerScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Customers</Text>
-      <FlatList
-        data={customers}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-      />
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search Customers"
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+      </View>
+      {filteredCustomers.length === 0 ? (
+        <Text style={styles.noResultsText}>No results found</Text>
+      ) : (
+        <FlatList
+          data={filteredCustomers}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+        />
+      )}
 
       {/* Modal for Customer Details */}
       <Modal
@@ -53,24 +94,26 @@ const CustomerScreen = () => {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Customer Details</Text>
-            {selectedCustomer && (
-              <>
-                <Text style={styles.modalText}>Name: {selectedCustomer.name}</Text>
-                <Text style={styles.modalText}>Phone: {selectedCustomer.phone}</Text>
-                <Text style={styles.modalText}>Address: {selectedCustomer.address}</Text>
-              </>
-            )}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Customer Details</Text>
+              {selectedCustomer && (
+                <>
+                  <Text style={styles.modalText}>Name: {selectedCustomer.name}</Text>
+                  <Text style={styles.modalText}>Phone: {selectedCustomer.phone}</Text>
+                  <Text style={styles.modalText}>Address: {selectedCustomer.address}</Text>
+                </>
+              )}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
@@ -88,12 +131,22 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: 20,
   },
+  searchContainer: {
+    marginBottom: 20,
+  },
+  searchInput: {
+    height: 40,
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+  },
   customerCard: {
     backgroundColor: colors.accent,
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
-    flex:1,
+    flex: 1,
   },
   customerName: {
     fontSize: 18,
@@ -109,9 +162,9 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
-    width:70,
-    position:'absolute',
-    left:290,
+    position: 'absolute',
+    right: 10,
+    top: 15,
   },
   detailsButtonText: {
     color: '#FFF',

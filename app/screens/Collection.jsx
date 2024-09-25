@@ -1,86 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, TextInput, Alert,
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { colors } from '../assests/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/AntDesign';
+import { colors } from '../assests/Colors';
 
 const CollectionScreen = ({ route, navigation }) => {
   const { customer, setCustomers } = route.params;
-  const [collectionHistory, setCollectionHistory] = useState([
-    { id: '1', date: '2024-09-01', amount: 500 },
-    { id: '2', date: '2024-09-10', amount: 1200 },
-  ]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newCollectionAmount, setNewCollectionAmount] = useState('');
+  const [updatedCustomer, setUpdatedCustomer] = useState(customer);
+  const [isLoading, setIsLoading] = useState(true);
 
-  
+  // Fetch customer data from AsyncStorage and ensure latest data
+  const fetchCustomerData = useCallback(async () => {
+    try {
+      const customersData = await AsyncStorage.getItem('customers');
+      if (customersData) {
+        const customers = JSON.parse(customersData);
+        const customerData = customers.find(c => c.id === customer.id);
+        setUpdatedCustomer(customerData);
+      }
+    } catch (error) {
+      console.error('Error fetching customer data: ', error);
+      Alert.alert('Error', 'Failed to load customer data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [customer.id]);
+
+  useEffect(() => {
+    fetchCustomerData();
+  }, [fetchCustomerData]);
+
+  // Calculate total amounts dynamically
+  const totalAmountPaid = updatedCustomer?.collection?.reduce((total, item) => total + item.amount, 0) || 0;
+  const   totalDueAmount = updatedCustomer ? updatedCustomer.dueAmount  : 0;
+
+  // Handle adding a new collection
+  const handleAddCollection = async () => {
+    const amountToAdd = parseFloat(newCollectionAmount);
+
+    // Check for valid amount and whether it exceeds the total due amount
+    if (isNaN(amountToAdd) || amountToAdd <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount.');
+      return;
+    }
+
+    if (amountToAdd > totalDueAmount) {
+      Alert.alert('Error', `The collection amount cannot be greater than the due amount (₹${totalDueAmount}).`);
+      return;
+    }
+
+    const newCollection = {
+      id: (updatedCustomer.collection.length + 1).toString(),
+      date: new Date().toISOString(),
+      amount: amountToAdd,
+    };
+
+    const updatedCollections = [...updatedCustomer.collection, newCollection];
+    const newDueAmount = updatedCustomer.dueAmount - amountToAdd;
+    const updatedData = { ...updatedCustomer, collection: updatedCollections, dueAmount: newDueAmount };
+
+    try {
+      const customersData = JSON.parse(await AsyncStorage.getItem('customers'));
+      const updatedCustomers = customersData.map(c =>
+        c.id === customer.id ? updatedData : c
+      );
+
+      await AsyncStorage.setItem('customers', JSON.stringify(updatedCustomers));
+
+      setNewCollectionAmount('');
+      setModalVisible(false);
+      setUpdatedCustomer(updatedData);
+      setCustomers(updatedCustomers);
+
+      Alert.alert('Success', 'Collection added successfully!');
+    } catch (error) {
+      console.error('Error updating customer data: ', error);
+      Alert.alert('Error', 'Failed to add collection. Please try again.');
+    }
+  };
+
+  // Render individual collection item
+  const renderItem = ({ item }) => (
+    <View style={styles.collectionCard}>
+      <Text style={styles.collectionText}>Date: {new Date(item.date).toLocaleDateString()}</Text>
+      <Text style={styles.collectionText}>Amount: ₹{item.amount}</Text>
+    </View>
+  );
+
   useEffect(() => {
     navigation.setOptions({
       title: `Collection for ${customer.name}`,
       headerShown: true,
       headerLeft: () => (
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name='arrowleft' size={25}/>
+          <Icon name='arrowleft' size={25} color={colors.primary} />
         </TouchableOpacity>
-       
       ),
     });
   }, [navigation, customer.name]);
 
-  // Calculate total amount paid
-  const totalAmountPaid = collectionHistory.reduce((total, item) => total + item.amount, 0);
-  const [totalDueAmount,setTotalDueAmount]= useState(customer.dueAmount)
-  const handleAddCollection = () => {
-    const amountToAdd = parseFloat(newCollectionAmount);
-
-    if (isNaN(amountToAdd) || amountToAdd <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount.');
-      return;
-    }
-
-    const updatedDueAmount = customer.dueAmount > 0 ? customer.dueAmount - amountToAdd : 0;
-     setTotalDueAmount(updatedDueAmount);
-    // Update customer due amount in parent (CustomerScreen)
-    setCustomers((prevCustomers) =>
-      prevCustomers.map((c) =>
-        c.id === customer.id ? { ...c, dueAmount: updatedDueAmount } : c
-      )
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
     );
-
-    // Add new collection record
-    const newCollection = {
-      id: (collectionHistory.length + 1).toString(),
-      date: new Date().toLocaleDateString(),
-      amount: amountToAdd,
-    };
-
-    setCollectionHistory([...collectionHistory, newCollection]);
-    setModalVisible(false);
-    setNewCollectionAmount(''); // Clear input field
-    Alert.alert('Success', 'Collection added and due amount updated!');
-  };
-
-  const renderItem = ({ item }) => (
-    <View style={styles.collectionCard}>
-      <Text style={styles.collectionText}>Date: {item.date}</Text>
-      <Text style={styles.collectionText}>Amount: ₹{item.amount}</Text>
-    </View>
-  );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>Total Due Amount: ₹{totalDueAmount }</Text>
+        <Text style={styles.summaryText}>Total Due Amount: ₹{totalDueAmount}</Text>
         <Text style={styles.summaryText}>Total Paid Amount: ₹{totalAmountPaid}</Text>
       </View>
 
       <FlatList
-        data={collectionHistory}
+        data={updatedCustomer?.collection || []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ListEmptyComponent={<Text style={styles.emptyListText}>No collections yet.</Text>}
       />
 
       <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -94,37 +148,34 @@ const CollectionScreen = ({ route, navigation }) => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter Collection Amount</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              placeholder="Enter amount"
-              value={newCollectionAmount}
-              onChangeText={setNewCollectionAmount}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleAddCollection}
-              >
-                <Text style={styles.confirmButtonText}>Confirm</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Enter Collection Amount</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                placeholder={`Max: ₹${totalDueAmount}`}
+                value={newCollectionAmount}
+                onChangeText={setNewCollectionAmount}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.confirmButton} onPress={handleAddCollection}>
+                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -163,14 +214,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  backButton: {
-    marginLeft: 15,
-  },
-  backButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
@@ -223,6 +266,23 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: colors.primary,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 
