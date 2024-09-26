@@ -42,9 +42,20 @@ export default function App() {
   };
   return (
     <SafeAreaProvider>
-      <StatusBar/>
       <NavigationContainer>
-        <Stack.Navigator >
+      <StatusBar style='dark'/>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#4CAF50', // Change the background color
+          },
+          headerTintColor: '#fff', // Change the back button and title color
+          headerTitleStyle: {
+            fontWeight: 'bold', // Style for the title
+            fontSize: 20, // Change the font size
+          },
+        }}
+      >
           {isLoggedIn ? (
             <>
               <Stack.Screen name="Home" options={{ headerShown: false }}>

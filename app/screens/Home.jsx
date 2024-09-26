@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,15 +17,24 @@ const Home = ({ navigation ,onLogOut}) => {
   const handleLogout = async()=>{
     onLogOut();
   }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Logout Button */}
-      <View style={styles.header}>
+  useEffect(() => {
+    navigation.setOptions({
+      title:'',
+      headerShown: true,
+      headerRight: () => (
+        <View style={styles.header}>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Icon name="logout" size={25} color={colors.primary} />
         </TouchableOpacity>
       </View>
+      ),
+    });
+  }, [navigation]);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Logout Button */}
+     
 
       {/* Box Buttons for Navigation */}
       <View style={styles.buttonsContainer}>
@@ -52,14 +61,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 20,
+    
+    marginHorizontal: 10,
+    
   },
   logoutButton: {
     padding: 10,
     backgroundColor: colors.accent,
-    borderRadius: 10,
+    borderRadius: 15,
   },
   buttonsContainer: {
     flex: 1,
