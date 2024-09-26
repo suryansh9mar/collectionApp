@@ -47,7 +47,7 @@ const CollectionScreen = ({ route, navigation }) => {
 
   // Calculate total amounts dynamically
   const totalAmountPaid = updatedCustomer?.collection?.reduce((total, item) => total + item.amount, 0) || 0;
-  const   totalDueAmount = updatedCustomer ? updatedCustomer.dueAmount  : 0;
+  const totalDueAmount = updatedCustomer ? updatedCustomer.dueAmount : 0;
 
   // Handle adding a new collection
   const handleAddCollection = async () => {
@@ -65,14 +65,15 @@ const CollectionScreen = ({ route, navigation }) => {
     }
 
     const newCollection = {
-      id: (updatedCustomer.collection.length + 1).toString(),
+      id: (customer.collection.length + 1).toString(),
       date: new Date().toISOString(),
       amount: amountToAdd,
     };
 
-    const updatedCollections = [...updatedCustomer.collection, newCollection];
-    const newDueAmount = updatedCustomer.dueAmount - amountToAdd;
-    const updatedData = { ...updatedCustomer, collection: updatedCollections, dueAmount: newDueAmount };
+    const updatedCollections = [...customer.collection, newCollection];
+    const newDueAmount = customer.dueAmount - amountToAdd;
+    const updatedData = { ...customer, collection: updatedCollections, dueAmount: newDueAmount };
+
 
     try {
       const customersData = JSON.parse(await AsyncStorage.getItem('customers'));
@@ -283,6 +284,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'center',
     marginTop: 20,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent, 
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 30, 
+    left: 10,
+    zIndex: 1,
   },
 });
 

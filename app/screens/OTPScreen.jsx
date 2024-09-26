@@ -2,15 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import OTPTextInput from 'react-native-otp-textinput';
 import { colors } from '../assests/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const OTPScreen = ({ route,navigation }) => {
+const OTPScreen = ({ route,navigation ,onLogin}) => {
   const { phoneNumber } = route.params;
   const [otp, setOtp] = useState('');
+  
 
   const handleVerifyOTP = () => {
     if (otp.length === 4 || otp === 1234) {
       Alert.alert('Success', 'OTP Verified!');
-      navigation.navigate('Customer')
+      onLogin()
+      
+      
+
     } else {
       Alert.alert('Error', 'Please enter a valid 4-digit OTP.');
     }

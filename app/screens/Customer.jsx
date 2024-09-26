@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../assests/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/AntDesign';
 
 const initialCustomersData = [
   { id: '1', name: 'John Doe', phone: '123-456-7890', address: '123 Main St, City A', dueAmount: 1500 ,collection:[{ id: '1', date: '2024-09-01', amount: 500 },
@@ -24,17 +25,36 @@ const initialCustomersData = [
 
 
 
-const CustomerScreen = () => {
-  const [customers, setCustomers] = useState(initialCustomersData);
+const Customer = () => {
+  const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
+  
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const storedCustomers = await AsyncStorage.getItem('customers');
+        if (storedCustomers !== null) {
+          setCustomers(JSON.parse(storedCustomers));
+        } else {
+          setCustomers(initialCustomersData);
+        }
+      } catch (error) {
+        console.error('Failed to load customers from AsyncStorage', error);
+      }
+    };
 
-  useEffect(async() => {
-   const setItem= await AsyncStorage.setItem('customers', JSON.stringify(customers))
-   setItem()
- }, [setCustomers])
+    loadCustomers();
+  }, []);
+  useEffect(() => {
+    const storeCustomers = async () => {
+      await AsyncStorage.setItem('customers', JSON.stringify(customers));
+    };
+    
+    storeCustomers();
+  }, [customers]);
 
   const handleDetails = (customer) => {
     setSelectedCustomer(customer);
@@ -64,6 +84,17 @@ const CustomerScreen = () => {
       </TouchableOpacity>
     </View>
   );
+  useEffect(() => {
+    navigation.setOptions({
+      title:'',
+      headerShown: true,
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name='arrowleft' size={25} color={colors.primary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -202,6 +233,16 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
   },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent, 
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 30, 
+    left: 10,
+    zIndex: 1,
+  },
 });
 
-export default CustomerScreen;
+export default Customer;

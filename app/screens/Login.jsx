@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { colors } from '../assests/Colors'; 
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation ,onLogin}) => {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleSendOTP = () => {
