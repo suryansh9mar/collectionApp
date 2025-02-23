@@ -8,6 +8,7 @@ import {
   Customer,
   Collection,
   Invoice,
+  AddCollection,
 } from "./app/screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-gesture-handler";
@@ -44,7 +45,7 @@ export default function App() {
       setIsLoggedIn(false);
       await AsyncStorage.setItem("isLogged", "false");
       await AsyncStorage.clear();
-      await getDeviceInfo()
+      await saveDeviceInfo()
     } catch (error) {
       console.error("Error during logout:", error);
     }
@@ -71,6 +72,11 @@ export default function App() {
               <Stack.Screen name="Home" options={{ headerShown: false }}>
                 {(props) => <Home {...props} onLogOut={handleLogout} />}
               </Stack.Screen>
+              <Stack.Screen
+                name="AddCollection"
+                component={AddCollection}
+                options={{ headerShown: true }}
+              />
               <Stack.Screen
                 name="Customer"
                 component={Customer}

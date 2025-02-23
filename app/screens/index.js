@@ -5,4 +5,5 @@ export {default as Home}  from './Home';
 export {default as Customer}  from './Customer';
 export {default as Collection } from './CollectionScreen';
 export {default as Invoice} from './Invoice'
+export {default as AddCollection} from './AddCollection'
 

@@ -19,6 +19,7 @@ const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
    
   const handleSendOTP = async () => {
+   
     const deviceInfo = await getDeviceInfo();
     console.log(deviceInfo);
     
