@@ -1,5 +1,12 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import OTPTextInput from "react-native-otp-textinput";
 import { colors } from "../assests/Colors";
 import { getDeviceInfo } from "../utlity/deviceInfo";
@@ -9,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const OTPScreen = ({ route, navigation, onLogin }) => {
   const { phoneNumber, requestId } = route.params;
   const [otpInput, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleVerifyOTP = useCallback(async () => {
     const deviceInfo = await getDeviceInfo();
@@ -19,6 +27,7 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
       Alert.alert("Error", "Please enter a valid OTP.");
       return;
     }
+    setLoading(true);
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/otp/verify`,
@@ -64,6 +73,8 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
       } else {
         Alert.alert("Network Error", "Please check your internet connection.");
       }
+    } finally {
+      setLoading(false);
     }
   }, [otpInput, requestId, onLogin, navigation]);
 
@@ -83,10 +94,13 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
         textInputStyle={styles.otpInput}
         keyboardType="default"
       />
-
-      <TouchableOpacity style={styles.button} onPress={handleVerifyOTP}>
-        <Text style={styles.buttonText}>Verify OTP</Text>
-      </TouchableOpacity>
+      {loading ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : (
+        <TouchableOpacity style={styles.button} onPress={handleVerifyOTP}>
+          <Text style={styles.buttonText}>Verify OTP</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

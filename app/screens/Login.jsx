@@ -1,6 +1,13 @@
 // LoginScreen.js
 import React, { useCallback, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { colors } from "../assests/Colors";
 import { TextInput } from "react-native-paper";
 import axios from "axios";
@@ -8,6 +15,7 @@ import { getDeviceInfo } from "../utlity/deviceInfo";
 
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSendOTP = useCallback(async () => {
     const deviceInfo = await getDeviceInfo();
@@ -16,6 +24,7 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert("Error", "Please enter a valid 10-digit phone number.");
       return;
     }
+    setLoading(true);
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/otp/request`,
@@ -42,6 +51,8 @@ const LoginScreen = ({ navigation }) => {
       } else if (error.request) {
         Alert.alert("Network Error", "Please check your internet connection.");
       }
+    } finally {
+      setLoading(false);
     }
   }, [phoneNumber, navigation]);
 
@@ -53,16 +64,17 @@ const LoginScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         label="Phone Number"
-        // mode="outlined"
-        // keyboardType="numeric"
         maxLength={10}
         value={phoneNumber}
         onChangeText={(text) => setPhoneNumber(text)}
       />
-
-      <TouchableOpacity style={styles.button} onPress={handleSendOTP}>
-        <Text style={styles.buttonText}>Send OTP</Text>
-      </TouchableOpacity>
+      {loading ? (
+        <ActivityIndicator color={colors.primary} size={"large"} />
+      ) : (
+        <TouchableOpacity style={styles.button} onPress={handleSendOTP}>
+          <Text style={styles.buttonText}>Send OTP</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

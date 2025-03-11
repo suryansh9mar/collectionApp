@@ -47,12 +47,24 @@ const Home = ({ navigation, onLogOut }) => {
           onPress={() => navigation.navigate("AddCollection")}
         >
           <AntDesign
-            name="plussquareo"
+            name="form"
             size={40}
             color={colors.primary}
             style={styles.icon}
           />
           <Text style={styles.buttonText}>Add Collection</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.boxButton}
+          onPress={() => navigation.navigate("OrderForm")}
+        >
+          <AntDesign
+            name="plussquareo"
+            size={40}
+            color={colors.primary}
+            style={styles.icon}
+          />
+          <Text style={styles.buttonText}>Order</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

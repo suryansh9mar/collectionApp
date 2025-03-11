@@ -9,6 +9,7 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,10 +25,12 @@ const Customer = () => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   // Fetch customers from API
   const fetchCustomers = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await AsyncStorage.getItem("authTokens");
       if (!data) throw new Error("No auth token found");
@@ -60,11 +63,12 @@ const Customer = () => {
 
       if (response.data.success) {
         setCustomers(response.data.customers);
-              
       }
     } catch (error) {
       console.error("Error fetching customers:", error);
-      loadOfflineCustomerData(); 
+      loadOfflineCustomerData();
+    } finally {
+      setLoading(false);
     }
   }, []);
   const loadOfflineCustomerData = async () => {
@@ -72,7 +76,10 @@ const Customer = () => {
       const storedCustomers = await AsyncStorage.getItem("customers");
       if (storedCustomers !== null) {
         setCustomers(JSON.parse(storedCustomers));
-        console.log("Loaded customers from AsyncStorage:", JSON.parse(storedCustomers));
+        console.log(
+          "Loaded customers from AsyncStorage:",
+          JSON.parse(storedCustomers)
+        );
       }
     } catch (error) {
       console.error("Error loading offline customers:", error);
@@ -88,8 +95,6 @@ const Customer = () => {
     fetchCustomers();
   }, [fetchCustomers]);
 
- 
-  
   const storeCustomers = async (customers) => {
     try {
       await AsyncStorage.setItem("customers", JSON.stringify(customers));
@@ -100,7 +105,7 @@ const Customer = () => {
   };
 
   const handleCustomerClick = (customer) => {
-    navigation.navigate("CollectionScreen", { customer ,setOnline});
+    navigation.navigate("CollectionScreen", { customer, setOnline });
   };
 
   const handleSearch = (query) => {
@@ -144,6 +149,13 @@ const Customer = () => {
     setSelectedCustomer(customer);
     setModalVisible(true);
   };
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -209,6 +221,12 @@ const Customer = () => {
 };
 
 const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

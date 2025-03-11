@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import InvoiceScreen from "./InvoiceTab"; // Create this file for invoices
+import InvoiceScreen from "./InvoiceTab";
 import { colors } from "../assests/Colors";
 import CollectionTab from "./CollectionTab";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -9,20 +10,24 @@ import axios from "axios";
 
 const Tab = createMaterialTopTabNavigator();
 
-const Collection = ({ route,navigation }) => {
-  const { customer,setOnline} = route.params;
+const Collection = ({ route, navigation }) => {
+  const { customer, setOnline } = route.params;
   const [collectionData, setCollectionData] = useState([]);
   const [invoiceData, setInvoiceData] = useState([]);
   const [totalPaidAmt, setTotalPaidAmt] = useState("");
   const [currentBalance, setCurrentBalance] = useState("");
-  
+  const [loading, setLoading] = useState(true); // Loader state
+
   const fetchData = async () => {
+    setLoading(true); // Start loader
     try {
       const authTokens = await AsyncStorage.getItem("authTokens");
       const { access_token } = JSON.parse(authTokens);
       const deviceInfo = await getDeviceInfo();
+
       const formdata = new FormData();
       formdata.append("customer_id", customer.id);
+
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/customer-invoices`,
         formdata,
@@ -35,27 +40,30 @@ const Collection = ({ route,navigation }) => {
           },
         }
       );
+
       if (response.status !== 200) {
         console.error(response.data.message || "Error getting response");
         setOnline(false);
-        loadOffline();
+        await loadOffline();
         return;
       }
+
       if (response.status === 200) {
-        console.log("success--", response.data);
+        console.log("Success:", response.data);
         setTotalPaidAmt(response.data.totalPaymentAmount);
         setCollectionData(response.data.paymentTransactions);
         setCurrentBalance(response.data.balance);
         setInvoiceData(response.data.invoices);
       }
     } catch (error) {
-      console.error("error:", error);
-      loadOffline();
-      setOnline(false)
+      console.error("Error:", error);
+      await loadOffline();
+      setOnline(false);
+    } finally {
+      setLoading(false); // Stop loader
     }
   };
 
-  //storing offlline
   const storeCollectionData = async (collectionData) => {
     try {
       await AsyncStorage.setItem(
@@ -67,6 +75,7 @@ const Collection = ({ route,navigation }) => {
       console.error("Error storing collectionData:", error);
     }
   };
+
   const storeInvoiceData = async (invoiceData) => {
     try {
       await AsyncStorage.setItem(`invoiceData${customer.id}`, JSON.stringify(invoiceData));
@@ -75,6 +84,7 @@ const Collection = ({ route,navigation }) => {
       console.error("Error storing invoiceData:", error);
     }
   };
+
   useEffect(() => {
     if (collectionData.length > 0) {
       storeCollectionData(collectionData);
@@ -82,28 +92,21 @@ const Collection = ({ route,navigation }) => {
     if (invoiceData.length > 0) {
       storeInvoiceData(invoiceData);
     }
-  }, [invoiceData, collectionData,navigation]);
+  }, [invoiceData, collectionData, navigation]);
 
-  ///stored offline
-  //load offlline
   const loadOffline = async () => {
     try {
-      const storedCollectionData = await AsyncStorage.getItem("collectionData");
-      const storedInvoiceData = await AsyncStorage.getItem("invoiceData");
+      const storedCollectionData = await AsyncStorage.getItem(`collectionData${customer.id}`);
+      const storedInvoiceData = await AsyncStorage.getItem(`invoiceData${customer.id}`);
+
       if (storedCollectionData !== null) {
         setCollectionData(JSON.parse(storedCollectionData));
-        console.log(
-          "Loaded storedCollectionData from AsyncStorage:",
-          JSON.parse(storedCollectionData)
-        );
+        console.log("Loaded storedCollectionData:", JSON.parse(storedCollectionData));
       }
 
       if (storedInvoiceData !== null) {
         setInvoiceData(JSON.parse(storedInvoiceData));
-        console.log(
-          "Loaded storedInvoiceData from AsyncStorage:",
-          JSON.parse(storedInvoiceData)
-        );
+        console.log("Loaded storedInvoiceData:", JSON.parse(storedInvoiceData));
       }
     } catch (error) {
       console.error("Error loading offline data:", error);
@@ -113,9 +116,17 @@ const Collection = ({ route,navigation }) => {
   useEffect(() => {
     fetchData();
     navigation.setOptions({
-      title:customer.name,
-    })
+      title: customer.name,
+    });
   }, [navigation]);
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <Tab.Navigator
@@ -132,7 +143,7 @@ const Collection = ({ route,navigation }) => {
       <Tab.Screen
         name="CollectionTab"
         options={{ title: "Collection" }}
-        initialParams={{ customer ,setCollectionData}}
+        initialParams={{ customer, setCollectionData }}
       >
         {(props) => <CollectionTab {...props} />}
       </Tab.Screen>
@@ -142,5 +153,14 @@ const Collection = ({ route,navigation }) => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
+  },
+});
 
 export default Collection;
