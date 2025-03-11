@@ -65,6 +65,7 @@ const Collection = ({ route, navigation }) => {
   };
 
   const storeCollectionData = async (collectionData) => {
+    setLoading(true);
     try {
       await AsyncStorage.setItem(
         `collectionData${customer.id}`,
@@ -73,15 +74,20 @@ const Collection = ({ route, navigation }) => {
       console.log("collectionData stored successfully!");
     } catch (error) {
       console.error("Error storing collectionData:", error);
+    }finally{
+      setLoading(false);
     }
   };
 
   const storeInvoiceData = async (invoiceData) => {
+    setLoading(true);
     try {
       await AsyncStorage.setItem(`invoiceData${customer.id}`, JSON.stringify(invoiceData));
       console.log("invoiceData stored successfully!");
     } catch (error) {
       console.error("Error storing invoiceData:", error);
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -95,6 +101,7 @@ const Collection = ({ route, navigation }) => {
   }, [invoiceData, collectionData, navigation]);
 
   const loadOffline = async () => {
+    setLoading(true);
     try {
       const storedCollectionData = await AsyncStorage.getItem(`collectionData${customer.id}`);
       const storedInvoiceData = await AsyncStorage.getItem(`invoiceData${customer.id}`);
@@ -110,6 +117,8 @@ const Collection = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error("Error loading offline data:", error);
+    }finally{
+      setLoading(false);
     }
   };
 
