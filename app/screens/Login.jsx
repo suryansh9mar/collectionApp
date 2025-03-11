@@ -1,28 +1,17 @@
 // LoginScreen.js
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { colors } from "../assests/Colors";
+import { TextInput } from "react-native-paper";
 import axios from "axios";
 import { getDeviceInfo } from "../utlity/deviceInfo";
 
-
-
-
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
-   
-  const handleSendOTP = async () => {
-   
+
+  const handleSendOTP = useCallback(async () => {
     const deviceInfo = await getDeviceInfo();
-    console.log(deviceInfo);
-    
+    // console.log(deviceInfo);
     if (phoneNumber.length !== 10) {
       Alert.alert("Error", "Please enter a valid 10-digit phone number.");
       return;
@@ -37,22 +26,24 @@ const LoginScreen = ({ navigation }) => {
           app_version: "1.0.0",
         }
       );
-      if (!response.data.success) {
-        Alert.alert("Error", response.data.message);
-      }
+
       if (response.data.success) {
         navigation.navigate("OTPScreen", {
           phoneNumber,
           requestId: response.data.request_id,
         });
-        // console.log(response.data);
-        
-        
       }
     } catch (error) {
       console.error("OTP Request Error:", error);
-      Alert.alert("Error", "Something went wrong. Please try again later.");
-  }};
+      if (error.response) {
+        // Server responded with a status code other than 2xx
+        const { status, data } = error.response;
+        Alert.alert("Error", data.message);
+      } else if (error.request) {
+        Alert.alert("Network Error", "Please check your internet connection.");
+      }
+    }
+  }, [phoneNumber, navigation]);
 
   return (
     <View style={styles.container}>
@@ -61,8 +52,9 @@ const LoginScreen = ({ navigation }) => {
 
       <TextInput
         style={styles.input}
-        placeholder="Phone Number"
-        keyboardType="numeric"
+        label="Phone Number"
+        // mode="outlined"
+        // keyboardType="numeric"
         maxLength={10}
         value={phoneNumber}
         onChangeText={(text) => setPhoneNumber(text)}
@@ -97,7 +89,7 @@ const styles = StyleSheet.create({
   input: {
     width: "100%",
     height: 50,
-    borderColor: colors.accent,
+    borderColor: "white",
     borderWidth: 2,
     borderRadius: 10,
     paddingHorizontal: 15,

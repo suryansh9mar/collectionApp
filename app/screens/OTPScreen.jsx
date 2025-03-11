@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import OTPTextInput from "react-native-otp-textinput";
 import { colors } from "../assests/Colors";
@@ -8,14 +8,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const OTPScreen = ({ route, navigation, onLogin }) => {
   const { phoneNumber, requestId } = route.params;
-
   const [otpInput, setOtp] = useState("");
 
-  const handleVerifyOTP = async () => {
+  const handleVerifyOTP = useCallback(async () => {
     const deviceInfo = await getDeviceInfo();
     // console.log(deviceInfo.deviceId);
     // console.log("Request ID:", requestId);
     // console.log("OTP:", otpInput);
+    if (otpInput.length !== 4) {
+      Alert.alert("Error", "Please enter a valid OTP.");
+      return;
+    }
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/otp/verify`,
@@ -26,10 +29,6 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
           device_type: deviceInfo.deviceType,
         }
       );
-      if (!response.data.success) {
-        Alert.alert("Error", response.data.message);
-        return;
-      }
       if (response.data.success) {
         const { access_token, refresh_token, token_type, expires_in } =
           response.data;
@@ -42,14 +41,31 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
             expires_in,
           })
         );
-        // console.log("Tokens saved successfully!", response.data);
         onLogin();
+      } else {
+        Alert.alert("Error", response.data.message || "Failed to verify OTP.");
       }
     } catch (error) {
       console.error("OTP Verification Error:", error);
-      Alert.alert("Error", "Something went wrong. Please try again later.");
+      if (error.response) {
+        const { status, data } = error.response;
+
+        if (status === 401) {
+          Alert.alert(
+            "Error",
+            data.message || "Session expired. Please log in again."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            data.message || "Something went wrong. Try again."
+          );
+        }
+      } else {
+        Alert.alert("Network Error", "Please check your internet connection.");
+      }
     }
-  };
+  }, [otpInput, requestId, onLogin, navigation]);
 
   return (
     <View style={styles.container}>
@@ -65,6 +81,7 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
         offTintColor={colors.primary}
         containerStyle={styles.otpInputContainer}
         textInputStyle={styles.otpInput}
+        keyboardType="default"
       />
 
       <TouchableOpacity style={styles.button} onPress={handleVerifyOTP}>
