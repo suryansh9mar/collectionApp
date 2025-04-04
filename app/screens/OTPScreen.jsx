@@ -39,7 +39,7 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
         }
       );
       if (response.data.success) {
-        const { access_token, refresh_token, token_type, expires_in } =
+        const { access_token, refresh_token, token_type, expires_in ,agent_id} =
           response.data;
         await AsyncStorage.setItem(
           "authTokens",
@@ -48,6 +48,7 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
             refresh_token,
             token_type,
             expires_in,
+            agent_id
           })
         );
         onLogin();

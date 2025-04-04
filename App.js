@@ -10,6 +10,7 @@ import {
   Invoice,
   AddCollection,
   OrderForm,
+  PendingCollection,
 } from "./app/screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-gesture-handler";
@@ -76,6 +77,11 @@ export default function App() {
               <Stack.Screen
                 name="AddCollection"
                 component={AddCollection}
+                options={{ headerShown: true }}
+              />
+              <Stack.Screen
+                name="PendingCollection"
+                component={PendingCollection}
                 options={{ headerShown: true }}
               />
               <Stack.Screen

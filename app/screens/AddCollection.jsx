@@ -10,18 +10,33 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import DropDownPicker from "react-native-dropdown-picker";
-import { colors } from "../assests/Colors"; // Assuming you have a colors file
+import { colors } from "../assests/Colors";
 import { getDeviceInfo } from "../utlity/deviceInfo";
 
-export default function AddCollection() {
+export default function AddCollection({ route, navigation }) {
   const [customerList, setCustomerList] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [balance, setBalance] = useState(0);
   const [collectionAmount, setCollectionAmount] = useState("");
-  const [open, setOpen] = useState(false);
+  const [openCustomer, setOpenCustomer] = useState(false);
+  const [openPayment, setOpenPayment] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentList, setPaymentList] = useState([
+    { label: "CASH", value: "CASH" },
+    { label: "UPI", value: "UPI" },
+    { label: "CHEQUE", value: "CHEQUE" },
+    { label: "BANK TRANSFER", value: "BANK_TRANSFER" },
+    { label: "CREDIT", value: "CREDIT" },
+    { label: "DEBIT CARD", value: "DEBIT" },
+    { label: "OTHER", value: "OTHER" },
+  ]);
+  const { customer } = route?.params || {};
 
   useEffect(() => {
+    if (customer) {
+      setSelectedCustomer(customer.id);
+    }
     getCustomers();
   }, []);
 
@@ -32,6 +47,8 @@ export default function AddCollection() {
       if (!data) throw new Error("No auth token found");
       const { access_token } = JSON.parse(data);
       const deviceInfo = await getDeviceInfo();
+      console.log(deviceInfo);
+      
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/customers`,
         {},
@@ -67,6 +84,10 @@ export default function AddCollection() {
   };
 
   const handleAddCollection = async () => {
+    if (!paymentMethod) {
+      Alert.alert("Error", "Please select a payment method");
+      return;
+    }
     if (!selectedCustomer) {
       Alert.alert("Error", "Please select a customer.");
       return;
@@ -78,27 +99,32 @@ export default function AddCollection() {
 
     try {
       const data = await AsyncStorage.getItem("authTokens");
+      const deviceInfo = await getDeviceInfo();
       if (!data) throw new Error("No auth token found");
-
-      const { access_token } = JSON.parse(data);
+      const { access_token , agent_id} = JSON.parse(data);
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/add-collection`,
+        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
         {
           customer_id: selectedCustomer,
-          amount: parseFloat(collectionAmount),
+          payment_method: paymentMethod,
+          amount: collectionAmount,
+          date:new Date().toISOString().split("T")[0],
+          agent_id: agent_id,
         },
         {
           headers: {
             Authorization: `Bearer ${access_token}`,
+            "X-Device-ID": deviceInfo.deviceId,
+            "X-Device-Type": deviceInfo.deviceType,
             "Content-Type": "application/json",
           },
         }
       );
 
-      if (response.status === 200 && response.data.success) {
+      if (response.status === 201 ) {
         Alert.alert("Success", "Collection added successfully.");
         setCollectionAmount("");
-        setBalance((prevBalance) => prevBalance - parseFloat(collectionAmount));
+        setBalance((prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount));
       } else {
         Alert.alert("Error", "Failed to add collection.");
       }
@@ -116,10 +142,10 @@ export default function AddCollection() {
         <>
           <Text style={styles.label}>Select Customer:</Text>
           <DropDownPicker
-            open={open}
+            open={openCustomer}
             value={selectedCustomer}
             items={customerList}
-            setOpen={setOpen}
+            setOpen={setOpenCustomer}
             setValue={setSelectedCustomer}
             setItems={setCustomerList}
             placeholder="Choose a customer"
@@ -129,12 +155,34 @@ export default function AddCollection() {
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownBox}
             onChangeValue={handleCustomerChange}
+            listMode="MODAL"
+            modalProps={{
+              animationType: "slide",
+            }}
+            scrollViewProps={{
+              contentContainerStyle: {
+                paddingBottom: 20,
+              },
+            }}
           />
 
           {selectedCustomer && (
-            <Text style={styles.balanceText}>Balance: ₹{balance}</Text>
+            <Text style={styles.balanceText}>Due Amount: ₹{balance*-1}</Text>
           )}
 
+          <Text style={styles.label}>Payment Method:</Text>
+          <DropDownPicker
+            open={openPayment}
+            value={paymentMethod}
+            items={paymentList}
+            setOpen={setOpenPayment}
+            setValue={setPaymentMethod}
+            setItems={setPaymentList}
+            placeholder="Select Payment Method"
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownBox}
+            onChangeValue={(value) => console.log("Selected:", value)}
+          />
           <Text style={styles.label}>Collection Amount:</Text>
           <TextInput
             style={styles.input}
@@ -159,6 +207,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 20,
   },
+
   label: {
     fontSize: 18,
     fontWeight: "bold",
@@ -183,7 +232,7 @@ const styles = StyleSheet.create({
   balanceText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: colors.primary,
+    color: colors.error,
     marginBottom: 10,
   },
   input: {

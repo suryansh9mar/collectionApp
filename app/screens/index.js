@@ -7,4 +7,5 @@ export {default as Collection } from './CollectionScreen';
 export {default as Invoice} from './Invoice'
 export {default as AddCollection} from './AddCollection'
 export {default as OrderForm} from './OrderForm'
+export {default as PendingCollection} from './PendingCollection'
 

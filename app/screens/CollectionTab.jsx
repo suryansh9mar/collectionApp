@@ -16,12 +16,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "../assests/Colors";
 
-const CollectionTab = ({ route }) => {
+const CollectionTab = ({ route ,navigation}) => {
   const { customer, setCollectionData } = route.params;
   // console.log(customer);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newCollectionAmount, setNewCollectionAmount] = useState("");
+  // const [modalVisible, setModalVisible] = useState(false);
+  // const [newCollectionAmount, setNewCollectionAmount] = useState("");
   const [collectionData, setCollectionDataState] = useState([]); // Store collection data
   const [totalPaid, setTotalPaid] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,69 +44,75 @@ const CollectionTab = ({ route }) => {
   };
 
   useEffect(() => {
-    console.log(collectionData);
     loadCollectionData();
+    // console.log(customer);
   }, []);
 
   const totalDueAmount = customer?.balance ? customer.balance * -1 : 0;
 
   // Handle adding a new collection
-  const handleAddCollection = async () => {
-    const amountToAdd = parseFloat(newCollectionAmount);
+  // const handleAddCollection = async () => {
+  //   const amountToAdd = parseFloat(newCollectionAmount);
 
-    if (isNaN(amountToAdd) || amountToAdd <= 0) {
-      Alert.alert("Error", "Please enter a valid amount.");
-      return;
-    }
+  //   if (isNaN(amountToAdd) || amountToAdd <= 0) {
+  //     Alert.alert("Error", "Please enter a valid amount.");
+  //     return;
+  //   }
 
-    if (amountToAdd > totalDueAmount) {
-      Alert.alert(
-        "Error",
-        `The collection amount cannot be greater than the due amount (₹${totalDueAmount}).`
-      );
-      return;
-    }
-    const newCollection = {
-      id: (collectionData.length + 1).toString(),
-      date: new Date().toISOString(),
-      amount: amountToAdd,
-      payment_method: "CASH",
-      transaction_number: `TXN-${new Date().getTime()}`,
-    };
+  //   if (amountToAdd > totalDueAmount) {
+  //     Alert.alert(
+  //       "Error",
+  //       `The collection amount cannot be greater than the due amount (₹${totalDueAmount}).`
+  //     );
+  //     return;
+  //   }
+  //   const newCollection = {
+  //     id: (collectionData.length + 1).toString(),
+  //     date: new Date().toISOString(),
+  //     amount: amountToAdd,
+  //     payment_method: "CASH",
+  //     transaction_number: `TXN-${new Date().getTime()}`,
+  //   };
 
-    const updatedCollections = [...collectionData, newCollection];
-    const newDueAmount = customer.balance * -1 - amountToAdd;
-    const updatedData = {
-      ...customer,
-      balance: newDueAmount,
-    };
-    try {
-      await AsyncStorage.setItem(
-        `collectionData${customer.id}`,
-        JSON.stringify(updatedCollections)
-      );
-      setCollectionDataState(updatedCollections);
-      setCollectionData(updatedCollections); // Update parent state
-      setTotalPaid(
-        updatedCollections.reduce(
-          (acc, item) => acc + parseFloat(item.amount),
-          0
-        )
-      );
+  //   const updatedCollections = [...collectionData, newCollection];
+  //   const newDueAmount = customer.balance * -1 - amountToAdd;
+  //   const updatedData = {
+  //     ...customer,
+  //     balance: newDueAmount,
+  //   };
+  //   try {
+  //     await AsyncStorage.setItem(
+  //       `collectionData${customer.id}`,
+  //       JSON.stringify(updatedCollections)
+  //     );
+  //     setCollectionDataState(updatedCollections);
+  //     setCollectionData(updatedCollections); // Update parent state
+  //     setTotalPaid(
+  //       updatedCollections.reduce(
+  //         (acc, item) => acc + parseFloat(item.amount),
+  //         0
+  //       )
+  //     );
 
-      setNewCollectionAmount("");
-      setModalVisible(false);
-      Alert.alert("Success", "Collection added successfully!");
-    } catch (error) {
-      console.error("Error updating collection data: ", error);
-      Alert.alert("Error", "Failed to add collection. Please try again.");
-    }
+  //     setNewCollectionAmount("");
+  //     setModalVisible(false);
+  //     Alert.alert("Success", "Collection added successfully!");
+  //   } catch (error) {
+  //     console.error("Error updating collection data: ", error);
+  //     Alert.alert("Error", "Failed to add collection. Please try again.");
+  //   }
+  // };
+
+  const handleAddCollection = () => {
+    console.log('clicked');
+    
+    navigation.navigate("AddCollection", {customer});
   };
 
   // Render individual collection item
   const renderItem = ({ item }) => (
     <View style={styles.collectionCard}>
-      <Text style={styles.collectionText}>Transaction: {item.transaction_number}</Text>
+      {/* <Text style={styles.collectionText}>Transaction: {item.transaction_number}</Text> */}
       <Text style={styles.collectionText}>Date: {new Date(item.created_at).toLocaleDateString()}</Text>
       <Text style={styles.collectionText}>Amount: ₹{item.amount}</Text>
       <Text style={styles.collectionText}>Payment Method: {item.payment_method}</Text>
@@ -142,13 +148,13 @@ const CollectionTab = ({ route }) => {
 
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => setModalVisible(true)}
+        onPress={() => handleAddCollection()}
       >
         <Text style={styles.addButtonText}>Add Collection</Text>
       </TouchableOpacity>
 
       {/* Modal for adding collection */}
-      <Modal
+      {/* <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
@@ -182,7 +188,7 @@ const CollectionTab = ({ route }) => {
             </View>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 };

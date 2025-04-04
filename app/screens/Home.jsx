@@ -56,6 +56,18 @@ const Home = ({ navigation, onLogOut }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.boxButton}
+          onPress={() => navigation.navigate("PendingCollection")}
+        >
+          <AntDesign
+            name="clockcircleo"
+            size={40}
+            color={colors.primary}
+            style={styles.icon}
+          />
+          <Text style={styles.buttonText}>Pending Collection</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.boxButton}
           onPress={() => navigation.navigate("OrderForm")}
         >
           <AntDesign
@@ -64,7 +76,7 @@ const Home = ({ navigation, onLogOut }) => {
             color={colors.primary}
             style={styles.icon}
           />
-          <Text style={styles.buttonText}>Order</Text>
+          <Text style={styles.buttonText}>Sales Order</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

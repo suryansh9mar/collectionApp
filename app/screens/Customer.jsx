@@ -34,13 +34,9 @@ const Customer = () => {
     try {
       const data = await AsyncStorage.getItem("authTokens");
       if (!data) throw new Error("No auth token found");
-
       const { access_token } = JSON.parse(data);
-      console.log(access_token);
-
+      // console.log(access_token);
       const deviceInfo = await getDeviceInfo();
-      // console.log(deviceInfo.deviceId);
-      // console.log(deviceInfo.deviceType);
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/customers`,
         {},
