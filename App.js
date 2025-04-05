@@ -11,6 +11,7 @@ import {
   AddCollection,
   OrderForm,
   PendingCollection,
+  UnsyncedCollection,
 } from "./app/screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-gesture-handler";
@@ -116,6 +117,11 @@ export default function App() {
               <Stack.Screen
                 name="AddCollection"
                 component={AddCollection}
+                options={{ headerShown: true }}
+              />
+              <Stack.Screen
+                name="UnsyncedCollections"
+                component={UnsyncedCollection}
                 options={{ headerShown: true }}
               />
               <Stack.Screen

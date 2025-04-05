@@ -15,7 +15,6 @@ import { colors } from "../assests/Colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getDeviceInfo } from "../utlity/deviceInfo";
 
-
 const PendingCollection = ({ navigation }) => {
   const [pendingData, setPendingData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -91,11 +90,11 @@ const PendingCollection = ({ navigation }) => {
     let filtered = pendingData;
     const data = await AsyncStorage.getItem("authTokens");
     console.log("Agent Name:", JSON.parse(data).agent_name);
-    
+
     if (filterAgent) {
       filtered = filtered.filter((item) => {
-        const agentName = item.agent_name?.toLowerCase() || '';
-        const filterValue = JSON.parse(data)?.agent_name?.toLowerCase() || '';
+        const agentName = item.agent_name?.toLowerCase() || "";
+        const filterValue = JSON.parse(data)?.agent_name?.toLowerCase() || "";
         return agentName.includes(filterValue);
       });
     }
@@ -131,7 +130,6 @@ const PendingCollection = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        {/* <Text style={styles.title}>Pending Collections</Text> */}
         <TouchableOpacity
           style={styles.checkboxContainer}
           onPress={toggleAgentFilter}
@@ -144,7 +142,7 @@ const PendingCollection = ({ navigation }) => {
           >
             {filterAgentOnly && <Text style={styles.checkboxTick}>✓</Text>}
           </View>
-          <Text style={styles.checkboxLabel}>Only Agent: Ramesh</Text>
+          <Text style={styles.checkboxLabel}>Your Collections Only</Text>
         </TouchableOpacity>
       </View>
 
@@ -226,11 +224,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
   },
-  
+
   checkboxChecked: {
     backgroundColor: colors.primary,
   },
-  
+
   checkboxTick: {
     color: "#fff",
     fontSize: 14,

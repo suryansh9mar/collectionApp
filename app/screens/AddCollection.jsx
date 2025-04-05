@@ -18,6 +18,7 @@ import NetInfo from "@react-native-community/netinfo";
 export default function AddCollection({ route, navigation }) {
   const [customerList, setCustomerList] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomerName, setSelectedCustomerName] = useState(null);
   const [balance, setBalance] = useState(0);
   const [collectionAmount, setCollectionAmount] = useState("");
   const [openCustomer, setOpenCustomer] = useState(false);
@@ -37,15 +38,15 @@ export default function AddCollection({ route, navigation }) {
   const { customer } = route?.params || {};
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      console.log("Connection type", state.type);
-      console.log("Is connected?", state.isConnected);
-      setIsOffline(false);
+      const currentlyOffline = !state.isConnected;
 
-      if (!state.isConnected) {
-        // Show toast or alert
-        Alert.alert("No Internet", "Please check your internet connection.");
-        setIsOffline(true);
-      }
+      setIsOffline((prev) => {
+        if (prev !== currentlyOffline) {
+          // Optional: Toast or Alert when going offline
+          return currentlyOffline; // Only update if changed
+        }
+        return prev; // No update if same
+      });
     });
 
     return () => unsubscribe();
@@ -82,6 +83,7 @@ export default function AddCollection({ route, navigation }) {
     const customer = customerList.find((c) => c.value === customerId);
     setSelectedCustomer(customerId);
     setBalance(customer?.balance || 0);
+    setSelectedCustomerName(customer?.label || "");
   };
 
   const addColletionOnline = async (newPayLoad) => {
@@ -90,7 +92,7 @@ export default function AddCollection({ route, navigation }) {
       const deviceInfo = await getDeviceInfo();
       if (!data) throw new Error("No auth token found");
       const { access_token, agent_id } = JSON.parse(data);
-  
+
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
         {
@@ -109,19 +111,26 @@ export default function AddCollection({ route, navigation }) {
           },
         }
       );
-  
+
       if (response.status === 201) {
         console.log("saved online");
         const storedData = await AsyncStorage.getItem("offlineCollections");
         if (storedData) {
           const parsedData = JSON.parse(storedData);
-  
+
           // Filter out the object with the matching id
-          const updatedData = parsedData.filter((item) => item.id !== newPayLoad.id);
-  
+          const updatedData = parsedData.filter(
+            (item) => item.id.toString() !== newPayLoad.id.toString()
+          );
+
           // Save the updated array back to AsyncStorage
-          await AsyncStorage.setItem("collections", JSON.stringify(updatedData));
-          console.log("Deleted successfully from local.");
+          await AsyncStorage.setItem(
+            "offlineCollections",
+            JSON.stringify(updatedData)
+          );
+          console.log("Deleted successfully from local.", updatedData);
+          const check = await AsyncStorage.getItem("offlineCollections");
+          console.log("After deletion, AsyncStorage:", JSON.parse(check));
         }
       }
     } catch (error) {
@@ -147,8 +156,9 @@ export default function AddCollection({ route, navigation }) {
     const currentDate = today.toLocaleDateString("en-CA"); // Returns YYYY-MM-DD format
     try {
       const newPayLoad = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         selectedCustomer,
+        selectedCustomerName,
         paymentMethod,
         collectionAmount,
         currentDate,
@@ -163,7 +173,7 @@ export default function AddCollection({ route, navigation }) {
       console.log("saved offine succesfully");
       Alert.alert("Success", "Collection added successfully.");
       setBalance(
-        (prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount) 
+        (prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount)
       );
       if (!isOffline) {
         addColletionOnline(newPayLoad);

@@ -101,12 +101,27 @@ const Home = ({ navigation, onLogOut }) => {
       label: "Sales Order",
       onPress: () => navigation.navigate("OrderForm"),
     },
+    {
+      icon: "sync",
+      label: "Unsynced Collections",
+      onPress: () => navigation.navigate("UnsyncedCollections"), // screen you define
+      red: true,
+    },
+    {
+      icon: "sync",
+      label: "Unsynced Orders",
+      // onPress: () => navigation.navigate("UnsyncedOrders"),
+      red: true,
+    },
   ];
 
   const renderBox = ({ item }) => (
-    <TouchableOpacity style={styles.boxButton} onPress={item.onPress}>
-      <AntDesign name={item.icon} size={30} color={colors.primary} />
-      <Text style={styles.buttonText}>{item.label}</Text>
+    <TouchableOpacity
+      style={[styles.boxButton, item.red && styles.redBox]}
+      onPress={item.onPress}
+    >
+      <AntDesign name={item.icon} size={30} color={item.red ? "#fff" : colors.primary} />
+      <Text style={[styles.buttonText, item.red && styles.redText]}>{item.label}</Text>
     </TouchableOpacity>
   );
 
@@ -190,6 +205,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     paddingHorizontal: 15,
     paddingVertical:35,
+  },
+  redBox: {
+    backgroundColor: "#ff4d4f", 
+  },
+  redText: {
+    color: "#fff",
   },
   buttonText: {
     marginTop: 10,
