@@ -32,11 +32,19 @@ const Customer = () => {
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
+      // First try to get from AsyncStorage
+      const storedCustomers = await AsyncStorage.getItem("customers");
+      if (storedCustomers) {
+        setCustomers(JSON.parse(storedCustomers));
+        setLoading(false);
+      }
+
+      // Then update from API in background
       const data = await AsyncStorage.getItem("authTokens");
       if (!data) throw new Error("No auth token found");
       const { access_token } = JSON.parse(data);
-      // console.log(access_token);
       const deviceInfo = await getDeviceInfo();
+
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/customers`,
         {},
@@ -50,19 +58,15 @@ const Customer = () => {
         }
       );
 
-      if (response.status !== 200) {
-        console.error(response.data.message || "Error getting response");
-        setOnline(false);
-        loadOfflineCustomerData();
-        return;
-      }
-
       if (response.data.success) {
         setCustomers(response.data.customers);
+        await AsyncStorage.setItem(
+          "customers",
+          JSON.stringify(response.data.customers)
+        );
       }
     } catch (error) {
       console.error("Error fetching customers:", error);
-      loadOfflineCustomerData();
     } finally {
       setLoading(false);
     }
@@ -126,20 +130,20 @@ const Customer = () => {
       </TouchableOpacity>
     </View>
   );
-  useEffect(() => {
-    navigation.setOptions({
-      title: "",
-      headerShown: true,
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrowleft" size={25} color={colors.primary} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
+  // useEffect(() => {
+  //   navigation.setOptions({
+  //     title: "Customers",
+  //     headerShown: true,
+  //     headerLeft: () => (
+  //       <TouchableOpacity
+  //         onPress={() => navigation.goBack()}
+  //         style={styles.backButton}
+  //       >
+  //         <Icon name="arrowleft" size={25} color={colors.primary} />
+  //       </TouchableOpacity>
+  //     ),
+  //   });
+  // }, [navigation]);
 
   const handleDetails = (customer) => {
     setSelectedCustomer(customer);
@@ -155,8 +159,6 @@ const Customer = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Customers</Text>
-
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -227,13 +229,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
+    paddingTop: 0,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: colors.primary,
-    marginBottom: 20,
-  },
+
   searchContainer: {
     marginBottom: 20,
   },

@@ -1,129 +1,201 @@
-import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  FlatList,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "react-native-vector-icons/AntDesign";
-
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getDeviceInfo } from "../utlity/deviceInfo";
 import { colors } from "../assests/Colors";
 
 const Home = ({ navigation, onLogOut }) => {
+  const [loading, setLoading] = useState(true);
+  const [agentName, setAgentName] = useState("");
+  const [warehouseName, setWarehouseName] = useState("");
+
+  const fetchCustomers = async () => {
+    try {
+      const data = await AsyncStorage.getItem("authTokens");
+      if (!data) throw new Error("No auth token found");
+      const { access_token,agent_name,warehouse_name } = JSON.parse(data);
+      const deviceInfo = await getDeviceInfo();
+      setAgentName(agent_name || "N/A");
+      setWarehouseName(warehouse_name || "N/A");
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/customers`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+            "X-Device-ID": deviceInfo.deviceId,
+            "X-Device-Type": deviceInfo.deviceType,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        await AsyncStorage.setItem(
+          "customers",
+          JSON.stringify(response.data.customers)
+        );
+      }
+
+      const userInfo = await AsyncStorage.getItem("userInfo");
+      if (userInfo) {
+        const parsed = JSON.parse(userInfo);
+        setAgentName(parsed.agent_name || "N/A");
+        setWarehouseName(parsed.warehouse_name || "N/A");
+      }
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
   const handleLogout = async () => {
     onLogOut();
   };
+
   useEffect(() => {
     navigation.setOptions({
-      title: "",
+      title: "Home",
       headerShown: true,
       headerRight: () => (
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <AntDesign name="logout" size={25} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <AntDesign name="logout" size={25} color={colors.primary} />
+        </TouchableOpacity>
       ),
     });
   }, [navigation]);
 
+  const menuItems = [
+    {
+      icon: "profile",
+      label: "Customers",
+      onPress: () => navigation.navigate("Customer"),
+    },
+    {
+      icon: "wallet",
+      label: "Add Collection",
+      onPress: () => navigation.navigate("AddCollection"),
+    },
+    {
+      icon: "clockcircleo",
+      label: "Pending Collection",
+      onPress: () => navigation.navigate("PendingCollection"),
+    },
+    {
+      icon: "form",
+      label: "Sales Order",
+      onPress: () => navigation.navigate("OrderForm"),
+    },
+  ];
+
+  const renderBox = ({ item }) => (
+    <TouchableOpacity style={styles.boxButton} onPress={item.onPress}>
+      <AntDesign name={item.icon} size={30} color={colors.primary} />
+      <Text style={styles.buttonText}>{item.label}</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Logout Button */}
-
-      {/* Box Buttons for Navigation */}
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity
-          style={styles.boxButton}
-          onPress={() => navigation.navigate("Customer")}
-        >
-          <AntDesign
-            name="profile"
-            size={40}
-            color={colors.primary}
-            style={styles.icon}
-          />
-          <Text style={styles.buttonText}>Customers</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.boxButton}
-          onPress={() => navigation.navigate("AddCollection")}
-        >
-          <AntDesign
-            name="form"
-            size={40}
-            color={colors.primary}
-            style={styles.icon}
-          />
-          <Text style={styles.buttonText}>Add Collection</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.boxButton}
-          onPress={() => navigation.navigate("PendingCollection")}
-        >
-          <AntDesign
-            name="clockcircleo"
-            size={40}
-            color={colors.primary}
-            style={styles.icon}
-          />
-          <Text style={styles.buttonText}>Pending Collection</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.boxButton}
-          onPress={() => navigation.navigate("OrderForm")}
-        >
-          <AntDesign
-            name="plussquareo"
-            size={40}
-            color={colors.primary}
-            style={styles.icon}
-          />
-          <Text style={styles.buttonText}>Sales Order</Text>
-        </TouchableOpacity>
+      <View style={styles.headerInfo}>
+        <Text style={styles.infoText}>👤 Agent: <Text style={styles.infoValue}>{agentName}</Text></Text>
+        <Text style={styles.infoText}>🏬 Warehouse: <Text style={styles.infoValue}>{warehouseName}</Text></Text>
       </View>
+
+      <FlatList
+        data={menuItems}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={renderBox}
+        numColumns={2}
+        columnWrapperStyle={styles.rowWrapper}
+        contentContainerStyle={styles.buttonsContainer}
+      />
     </SafeAreaView>
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 20,
   },
-  header: {
-    marginHorizontal: 10,
-  },
-  logoutButton: {
-    padding: 10,
-    backgroundColor: colors.accent,
-    borderRadius: 15,
-  },
-  buttonsContainer: {
+  loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: colors.background,
+  },
+  headerInfo: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom:20,
+  },
+  infoText: {
+    fontSize: 16,
+    marginBottom: 6,
+    color: "#555",
+  },
+  infoValue: {
+    fontWeight: "bold",
+    color: colors.primary,
+  },
+  logoutButton: {
+    marginRight: 15,
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: "#f1f1f1",
+  },
+  buttonsContainer: {
+    padding: 25,
+  },
+  rowWrapper: {
+    justifyContent: "space-between",
+    marginBottom: 30,
   },
   boxButton: {
-    width: "80%",
+    flex: 0.48,
     backgroundColor: colors.accent,
+    borderRadius: 16,
     paddingVertical: 30,
-    borderRadius: 20,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5, // For Android shadow effect
+    marginHorizontal: 2,
+    paddingHorizontal: 15,
+    paddingVertical:35,
   },
   buttonText: {
-    fontSize: 18,
-    color: "#FFF",
-    fontWeight: "bold",
     marginTop: 10,
-  },
-  icon: {
-    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.primary,
   },
 });
 

@@ -67,6 +67,45 @@ export default function App() {
               fontWeight: "bold",
               fontSize: 20,
             },
+            cardStyle: { backgroundColor: '#fff' },
+            cardStyleInterpolator: ({ current, layouts }) => ({
+              cardStyle: {
+                transform: [
+                  {
+                    translateX: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.width, 0],
+                    }),
+                  },
+                ],
+                opacity: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
+                }),
+              },
+              overlayStyle: {
+                opacity: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.5],
+                }),
+              },
+            }),
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            transitionSpec: {
+              open: {
+                animation: 'timing',
+                config: {
+                  duration: 300,
+                },
+              },
+              close: {
+                animation: 'timing',
+                config: {
+                  duration: 300,
+                },
+              },
+            },
           }}
         >
           {isLoggedIn ? (
@@ -92,7 +131,25 @@ export default function App() {
               <Stack.Screen
                 name="Customer"
                 component={Customer}
-                options={{ headerShown: false }}
+                options={{
+                  headerShown: true,
+                  cardStyleInterpolator: ({ current, layouts }) => ({
+                    cardStyle: {
+                      transform: [
+                        {
+                          translateX: current.progress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [layouts.screen.width, 0],
+                          }),
+                        },
+                      ],
+                      opacity: current.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 1],
+                      }),
+                    },
+                  }),
+                }}
               />
               <Stack.Screen
                 name="CollectionScreen"
@@ -122,3 +179,4 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+

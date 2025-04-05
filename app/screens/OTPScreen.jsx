@@ -39,8 +39,16 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
         }
       );
       if (response.data.success) {
-        const { access_token, refresh_token, token_type, expires_in ,agent_id} =
-          response.data;
+        const {
+          access_token,
+          refresh_token,
+          token_type,
+          expires_in,
+          agent_id,
+          agent_name,
+          warehouse_name,
+          warehouse_id,
+        } = response.data;
         await AsyncStorage.setItem(
           "authTokens",
           JSON.stringify({
@@ -48,10 +56,13 @@ const OTPScreen = ({ route, navigation, onLogin }) => {
             refresh_token,
             token_type,
             expires_in,
-            agent_id
+            agent_id,
+            warehouse_id,
+            agent_name,
+            warehouse_name,
           })
         );
-        onLogin();
+        onLogin(); // This will navigate to Home screen where customers will be fetched
       } else {
         Alert.alert("Error", response.data.message || "Failed to verify OTP.");
       }

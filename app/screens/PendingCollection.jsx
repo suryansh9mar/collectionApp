@@ -7,27 +7,28 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Alert,
+  TouchableOpacity,
 } from "react-native";
 import axios from "axios";
 import { colors } from "../assests/Colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getDeviceInfo } from "../utlity/deviceInfo";
 
-const PendingCollection = () => {
+
+const PendingCollection = ({ navigation }) => {
   const [pendingData, setPendingData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [filterAgentOnly, setFilterAgentOnly] = useState(false);
 
   const fetchPendingCollections = useCallback(async () => {
     setLoading(true);
     try {
       const tokenData = await AsyncStorage.getItem("authTokens");
-      console.log(tokenData);
-
       const { access_token } = JSON.parse(tokenData);
       const deviceInfo = await getDeviceInfo();
-      console.log(deviceInfo);
 
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections`,
@@ -40,7 +41,7 @@ const PendingCollection = () => {
         }
       );
 
-      if (response.status == 200) {
+      if (response.status === 200) {
         const cleanedData = response.data.map((item) => ({
           id: item.id,
           date: item.date,
@@ -50,9 +51,23 @@ const PendingCollection = () => {
         }));
         setPendingData(cleanedData);
         setFilteredData(cleanedData);
+        await AsyncStorage.setItem(
+          "pendingCollections",
+          JSON.stringify(cleanedData)
+        );
       }
     } catch (error) {
-      console.error("Error fetching pending collections:", error.response.data);
+      console.error(
+        "Error fetching pending collections:",
+        error.response?.data
+      );
+      Alert.alert("Offline Mode", "Showing saved data due to network error.");
+      const offlineData = await AsyncStorage.getItem("pendingCollections");
+      if (offlineData) {
+        const parsed = JSON.parse(offlineData);
+        setPendingData(parsed);
+        setFilteredData(parsed);
+      }
     } finally {
       setLoading(false);
     }
@@ -62,31 +77,76 @@ const PendingCollection = () => {
     fetchPendingCollections();
   }, []);
 
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: false });
+  }, [navigation]);
+
   const handleSearch = (text) => {
     setSearch(text);
-    const lowerText = text.toLowerCase();
-    const filtered = pendingData.filter(
-      (item) =>
-        item.customer_name.toLowerCase().includes(lowerText) ||
-        item.agent_name.toLowerCase().includes(lowerText) ||
-        item.amount.toString().includes(lowerText)
-    );
+    applyFilter(text, filterAgentOnly);
+  };
+
+  const applyFilter = async (searchText, filterAgent) => {
+    const lowerText = searchText.toLowerCase();
+    let filtered = pendingData;
+    const data = await AsyncStorage.getItem("authTokens");
+    console.log("Agent Name:", JSON.parse(data).agent_name);
+    
+    if (filterAgent) {
+      filtered = filtered.filter((item) => {
+        const agentName = item.agent_name?.toLowerCase() || '';
+        const filterValue = JSON.parse(data)?.agent_name?.toLowerCase() || '';
+        return agentName.includes(filterValue);
+      });
+    }
+
+    if (lowerText) {
+      filtered = filtered.filter(
+        (item) =>
+          item.customer_name.toLowerCase().includes(lowerText) ||
+          item.agent_name.toLowerCase().includes(lowerText) ||
+          item.amount.toString().includes(lowerText)
+      );
+    }
+
     setFilteredData(filtered);
+  };
+
+  const toggleAgentFilter = () => {
+    const newValue = !filterAgentOnly;
+    setFilterAgentOnly(newValue);
+    applyFilter(search, newValue);
   };
 
   const renderItem = ({ item }) => (
     <View style={styles.row}>
-      <Text style={styles.cell}>{item.id}</Text>
-      <Text style={styles.cell}>{item.date}</Text>
-      <Text style={styles.cell}>{item.agent_name}</Text>
-      <Text style={styles.cell}>{item.customer_name}</Text>
-      <Text style={styles.cell}>{item.amount}</Text>
+      <Text style={styles.cellId}>{item.id}</Text>
+      <Text style={styles.cellDate}>{item.date}</Text>
+      <Text style={styles.cellName}>{item.agent_name}</Text>
+      <Text style={styles.cellName}>{item.customer_name}</Text>
+      <Text style={styles.cellAmount}>{item.amount}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pending Collections</Text>
+      <View style={styles.titleRow}>
+        {/* <Text style={styles.title}>Pending Collections</Text> */}
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={toggleAgentFilter}
+        >
+          <View
+            style={[
+              styles.checkboxBox,
+              filterAgentOnly && styles.checkboxChecked,
+            ]}
+          >
+            {filterAgentOnly && <Text style={styles.checkboxTick}>✓</Text>}
+          </View>
+          <Text style={styles.checkboxLabel}>Only Agent: Ramesh</Text>
+        </TouchableOpacity>
+      </View>
 
       <TextInput
         placeholder="Search by ID, Agent or Customer"
@@ -99,11 +159,11 @@ const PendingCollection = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
           <View style={styles.headerRow}>
-            <Text style={[styles.cell, styles.headerCell]}>ID</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Date</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Agent</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Customer</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Amount</Text>
+            <Text style={[styles.cellId, styles.headerCell]}>ID</Text>
+            <Text style={[styles.cellDate, styles.headerCell]}>Date</Text>
+            <Text style={[styles.cellName, styles.headerCell]}>Agent</Text>
+            <Text style={[styles.cellName, styles.headerCell]}>Customer</Text>
+            <Text style={[styles.cellAmount, styles.headerCell]}>Amount</Text>
           </View>
 
           {loading ? (
@@ -136,11 +196,45 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 16,
   },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: colors.primary,
-    marginBottom: 16,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkboxLabel: {
+    marginLeft: 8,
+    color: colors.primary,
+    fontWeight: "500",
+  },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  
+  checkboxTick: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
   },
   searchInput: {
     height: 45,
@@ -168,12 +262,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 600,
   },
-  cell: {
-    flex: 1,
+  cellId: {
+    width: 50,
     textAlign: "center",
     fontSize: 14,
     color: colors.primary,
-    paddingHorizontal: 4,
+  },
+  cellDate: {
+    width: 90,
+    textAlign: "center",
+    fontSize: 14,
+    color: colors.primary,
+  },
+  cellName: {
+    width: 130,
+    textAlign: "center",
+    fontSize: 14,
+    color: colors.primary,
+  },
+  cellAmount: {
+    width: 90,
+    textAlign: "center",
+    fontSize: 14,
+    color: colors.primary,
   },
   headerCell: {
     color: "#fff",

@@ -6,12 +6,14 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import DropDownPicker from "react-native-dropdown-picker";
 import { colors } from "../assests/Colors";
 import { getDeviceInfo } from "../utlity/deviceInfo";
+import NetInfo from "@react-native-community/netinfo";
 
 export default function AddCollection({ route, navigation }) {
   const [customerList, setCustomerList] = useState([]);
@@ -19,6 +21,7 @@ export default function AddCollection({ route, navigation }) {
   const [balance, setBalance] = useState(0);
   const [collectionAmount, setCollectionAmount] = useState("");
   const [openCustomer, setOpenCustomer] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [openPayment, setOpenPayment] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null);
@@ -32,7 +35,21 @@ export default function AddCollection({ route, navigation }) {
     { label: "OTHER", value: "OTHER" },
   ]);
   const { customer } = route?.params || {};
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      console.log("Connection type", state.type);
+      console.log("Is connected?", state.isConnected);
+      setIsOffline(false);
 
+      if (!state.isConnected) {
+        // Show toast or alert
+        Alert.alert("No Internet", "Please check your internet connection.");
+        setIsOffline(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   useEffect(() => {
     if (customer) {
       setSelectedCustomer(customer.id);
@@ -42,38 +59,22 @@ export default function AddCollection({ route, navigation }) {
 
   const getCustomers = async () => {
     try {
-      setIsOffline(false);
-      const data = await AsyncStorage.getItem("authTokens");
-      if (!data) throw new Error("No auth token found");
-      const { access_token } = JSON.parse(data);
-      const deviceInfo = await getDeviceInfo();
-      console.log(deviceInfo);
-      
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/customers`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            "X-Device-ID": deviceInfo.deviceId,
-            "X-Device-Type": deviceInfo.deviceType,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.status === 200 && response.data.success) {
-        const formattedCustomers = response.data.customers.map((customer) => ({
-          label: `${customer.name} (₹${customer.balance})`,
-          value: customer.id,
-          balance: customer.balance,
-        }));
-        setCustomerList(formattedCustomers);
+      const storedCustomers = await AsyncStorage.getItem("customers");
+      if (!storedCustomers) {
+        throw new Error("No stored customers found");
       }
+
+      const customers = JSON.parse(storedCustomers);
+      const formattedCustomers = customers.map((customer) => ({
+        label: `${customer.name} `,
+        value: customer.id,
+        balance: customer.balance,
+      }));
+
+      setCustomerList(formattedCustomers);
     } catch (error) {
-      console.error("Error fetching customers:", error);
-      Alert.alert("Error", "Failed to fetch customers.");
-      setIsOffline(true);
+      console.error("Error loading customers:", error);
+      Alert.alert("Error", "Failed to load customers.");
     }
   };
 
@@ -83,7 +84,53 @@ export default function AddCollection({ route, navigation }) {
     setBalance(customer?.balance || 0);
   };
 
+  const addColletionOnline = async (newPayLoad) => {
+    try {
+      const data = await AsyncStorage.getItem("authTokens");
+      const deviceInfo = await getDeviceInfo();
+      if (!data) throw new Error("No auth token found");
+      const { access_token, agent_id } = JSON.parse(data);
+  
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
+        {
+          customer_id: newPayLoad.selectedCustomer,
+          payment_method: newPayLoad.paymentMethod,
+          amount: newPayLoad.collectionAmount,
+          date: newPayLoad.currentDate,
+          agent_id: agent_id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+            "X-Device-ID": deviceInfo.deviceId,
+            "X-Device-Type": deviceInfo.deviceType,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      if (response.status === 201) {
+        console.log("saved online");
+        const storedData = await AsyncStorage.getItem("offlineCollections");
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+  
+          // Filter out the object with the matching id
+          const updatedData = parsedData.filter((item) => item.id !== newPayLoad.id);
+  
+          // Save the updated array back to AsyncStorage
+          await AsyncStorage.setItem("collections", JSON.stringify(updatedData));
+          console.log("Deleted successfully from local.");
+        }
+      }
+    } catch (error) {
+      console.error("Error adding collection:", error);
+      console.log("not saved online");
+    }
+  };
   const handleAddCollection = async () => {
+    setIsLoading(true);
     if (!paymentMethod) {
       Alert.alert("Error", "Please select a payment method");
       return;
@@ -96,107 +143,105 @@ export default function AddCollection({ route, navigation }) {
       Alert.alert("Error", "Enter a valid collection amount.");
       return;
     }
-
+    const today = new Date();
+    const currentDate = today.toLocaleDateString("en-CA"); // Returns YYYY-MM-DD format
     try {
-      const data = await AsyncStorage.getItem("authTokens");
-      const deviceInfo = await getDeviceInfo();
-      if (!data) throw new Error("No auth token found");
-      const { access_token , agent_id} = JSON.parse(data);
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
-        {
-          customer_id: selectedCustomer,
-          payment_method: paymentMethod,
-          amount: collectionAmount,
-          date:new Date().toISOString().split("T")[0],
-          agent_id: agent_id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            "X-Device-ID": deviceInfo.deviceId,
-            "X-Device-Type": deviceInfo.deviceType,
-            "Content-Type": "application/json",
-          },
-        }
+      const newPayLoad = {
+        id: Date.now().toString(),
+        selectedCustomer,
+        paymentMethod,
+        collectionAmount,
+        currentDate,
+      };
+      const payloads = await AsyncStorage.getItem("offlineCollections");
+      const parsedPayloads = payloads ? JSON.parse(payloads) : [];
+      const updatedPayloads = [...parsedPayloads, newPayLoad];
+      await AsyncStorage.setItem(
+        "offlineCollections",
+        JSON.stringify(updatedPayloads)
       );
-
-      if (response.status === 201 ) {
-        Alert.alert("Success", "Collection added successfully.");
-        setCollectionAmount("");
-        setBalance((prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount));
-      } else {
-        Alert.alert("Error", "Failed to add collection.");
+      console.log("saved offine succesfully");
+      Alert.alert("Success", "Collection added successfully.");
+      setBalance(
+        (prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount) 
+      );
+      if (!isOffline) {
+        addColletionOnline(newPayLoad);
       }
     } catch (error) {
       console.error("Error adding collection:", error);
       Alert.alert("Error", "Something went wrong.");
+    } finally {
+      setIsLoading(false);
+      setCollectionAmount("");
+      setPaymentMethod(null);
     }
   };
+  if (isLoading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {isOffline ? (
-        <Text style={styles.offlineText}>You are offline</Text>
-      ) : (
-        <>
-          <Text style={styles.label}>Select Customer:</Text>
-          <DropDownPicker
-            open={openCustomer}
-            value={selectedCustomer}
-            items={customerList}
-            setOpen={setOpenCustomer}
-            setValue={setSelectedCustomer}
-            setItems={setCustomerList}
-            placeholder="Choose a customer"
-            searchable={true}
-            searchPlaceholder="Search customers..."
-            containerStyle={styles.dropdownContainer}
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownBox}
-            onChangeValue={handleCustomerChange}
-            listMode="MODAL"
-            modalProps={{
-              animationType: "slide",
-            }}
-            scrollViewProps={{
-              contentContainerStyle: {
-                paddingBottom: 20,
-              },
-            }}
-          />
+      <Text style={styles.label}>Select Customer:</Text>
+      <DropDownPicker
+        open={openCustomer}
+        value={selectedCustomer}
+        items={customerList}
+        setOpen={setOpenCustomer}
+        setValue={setSelectedCustomer}
+        setItems={setCustomerList}
+        placeholder="Choose a customer"
+        searchable={true}
+        searchPlaceholder="Search customers..."
+        containerStyle={styles.dropdownContainer}
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownBox}
+        onChangeValue={handleCustomerChange}
+        listMode="MODAL"
+        modalProps={{
+          animationType: "slide",
+        }}
+        scrollViewProps={{
+          contentContainerStyle: {
+            paddingBottom: 20,
+          },
+        }}
+      />
 
-          {selectedCustomer && (
-            <Text style={styles.balanceText}>Due Amount: ₹{balance*-1}</Text>
-          )}
-
-          <Text style={styles.label}>Payment Method:</Text>
-          <DropDownPicker
-            open={openPayment}
-            value={paymentMethod}
-            items={paymentList}
-            setOpen={setOpenPayment}
-            setValue={setPaymentMethod}
-            setItems={setPaymentList}
-            placeholder="Select Payment Method"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownBox}
-            onChangeValue={(value) => console.log("Selected:", value)}
-          />
-          <Text style={styles.label}>Collection Amount:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter amount"
-            keyboardType="numeric"
-            value={collectionAmount}
-            onChangeText={setCollectionAmount}
-          />
-
-          <TouchableOpacity style={styles.button} onPress={handleAddCollection}>
-            <Text style={styles.buttonText}>Add Collection</Text>
-          </TouchableOpacity>
-        </>
+      {selectedCustomer && (
+        <Text style={styles.balanceText}>Due Amount: ₹{balance * -1}</Text>
       )}
+
+      <Text style={styles.label}>Payment Method:</Text>
+      <DropDownPicker
+        open={openPayment}
+        value={paymentMethod}
+        items={paymentList}
+        setOpen={setOpenPayment}
+        setValue={setPaymentMethod}
+        setItems={setPaymentList}
+        placeholder="Select Payment Method"
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownBox}
+        onChangeValue={(value) => console.log("Selected:", value)}
+      />
+      <Text style={styles.label}>Collection Amount:</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter amount"
+        keyboardType="numeric"
+        value={collectionAmount}
+        onChangeText={setCollectionAmount}
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleAddCollection}>
+        <Text style={styles.buttonText}>Add Collection</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -206,6 +251,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.background,
   },
 
   label: {

@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "../assests/Colors";
 
-const CollectionTab = ({ route ,navigation}) => {
+const CollectionTab = ({ route, navigation }) => {
   const { customer, setCollectionData } = route.params;
   // console.log(customer);
 
@@ -28,7 +28,9 @@ const CollectionTab = ({ route ,navigation}) => {
 
   const loadCollectionData = async () => {
     try {
-      const storedData = await AsyncStorage.getItem(`collectionData${customer.id}`);
+      const storedData = await AsyncStorage.getItem(
+        `collectionData${customer.id}`
+      );
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         setCollectionDataState(parsedData);
@@ -50,72 +52,23 @@ const CollectionTab = ({ route ,navigation}) => {
 
   const totalDueAmount = customer?.balance ? customer.balance * -1 : 0;
 
-  // Handle adding a new collection
-  // const handleAddCollection = async () => {
-  //   const amountToAdd = parseFloat(newCollectionAmount);
-
-  //   if (isNaN(amountToAdd) || amountToAdd <= 0) {
-  //     Alert.alert("Error", "Please enter a valid amount.");
-  //     return;
-  //   }
-
-  //   if (amountToAdd > totalDueAmount) {
-  //     Alert.alert(
-  //       "Error",
-  //       `The collection amount cannot be greater than the due amount (₹${totalDueAmount}).`
-  //     );
-  //     return;
-  //   }
-  //   const newCollection = {
-  //     id: (collectionData.length + 1).toString(),
-  //     date: new Date().toISOString(),
-  //     amount: amountToAdd,
-  //     payment_method: "CASH",
-  //     transaction_number: `TXN-${new Date().getTime()}`,
-  //   };
-
-  //   const updatedCollections = [...collectionData, newCollection];
-  //   const newDueAmount = customer.balance * -1 - amountToAdd;
-  //   const updatedData = {
-  //     ...customer,
-  //     balance: newDueAmount,
-  //   };
-  //   try {
-  //     await AsyncStorage.setItem(
-  //       `collectionData${customer.id}`,
-  //       JSON.stringify(updatedCollections)
-  //     );
-  //     setCollectionDataState(updatedCollections);
-  //     setCollectionData(updatedCollections); // Update parent state
-  //     setTotalPaid(
-  //       updatedCollections.reduce(
-  //         (acc, item) => acc + parseFloat(item.amount),
-  //         0
-  //       )
-  //     );
-
-  //     setNewCollectionAmount("");
-  //     setModalVisible(false);
-  //     Alert.alert("Success", "Collection added successfully!");
-  //   } catch (error) {
-  //     console.error("Error updating collection data: ", error);
-  //     Alert.alert("Error", "Failed to add collection. Please try again.");
-  //   }
-  // };
-
   const handleAddCollection = () => {
-    console.log('clicked');
-    
-    navigation.navigate("AddCollection", {customer});
+    console.log("clicked");
+
+    navigation.navigate("AddCollection", { customer });
   };
 
   // Render individual collection item
   const renderItem = ({ item }) => (
     <View style={styles.collectionCard}>
       {/* <Text style={styles.collectionText}>Transaction: {item.transaction_number}</Text> */}
-      <Text style={styles.collectionText}>Date: {new Date(item.created_at).toLocaleDateString()}</Text>
+      <Text style={styles.collectionText}>
+        Date: {new Date(item.created_at).toLocaleDateString()}
+      </Text>
       <Text style={styles.collectionText}>Amount: ₹{item.amount}</Text>
-      <Text style={styles.collectionText}>Payment Method: {item.payment_method}</Text>
+      <Text style={styles.collectionText}>
+        Payment Method: {item.payment_method}
+      </Text>
     </View>
   );
 
@@ -152,43 +105,6 @@ const CollectionTab = ({ route ,navigation}) => {
       >
         <Text style={styles.addButtonText}>Add Collection</Text>
       </TouchableOpacity>
-
-      {/* Modal for adding collection */}
-      {/* <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Enter Collection Amount</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                placeholder={`Max: ₹${totalDueAmount}`}
-                value={newCollectionAmount}
-                onChangeText={setNewCollectionAmount}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.confirmButton}
-                  onPress={handleAddCollection}
-                >
-                  <Text style={styles.confirmButtonText}>Confirm</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal> */}
     </SafeAreaView>
   );
 };
