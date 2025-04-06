@@ -142,7 +142,7 @@ const PendingCollection = ({ navigation }) => {
           >
             {filterAgentOnly && <Text style={styles.checkboxTick}>✓</Text>}
           </View>
-          <Text style={styles.checkboxLabel}>Your Collections Only</Text>
+          <Text style={styles.checkboxLabel}>My Collections Only</Text>
         </TouchableOpacity>
       </View>
 

@@ -170,8 +170,8 @@ export default function AddCollection({ route, navigation }) {
         "offlineCollections",
         JSON.stringify(updatedPayloads)
       );
-      console.log("saved offine succesfully");
-      Alert.alert("Success", "Collection added successfully.");
+      // console.log("saved offine succesfully");
+      Alert.alert("Success", "Collection added successfully");
       setBalance(
         (prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount)
       );
@@ -180,7 +180,7 @@ export default function AddCollection({ route, navigation }) {
       }
     } catch (error) {
       console.error("Error adding collection:", error);
-      Alert.alert("Error", "Something went wrong.");
+      Alert.alert("Error", "Something went wrong");
     } finally {
       setIsLoading(false);
       setCollectionAmount("");
