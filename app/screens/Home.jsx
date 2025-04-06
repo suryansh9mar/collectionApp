@@ -136,8 +136,8 @@ const Home = ({ navigation, onLogOut }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerInfo}>
-        <Text style={styles.infoText}>👤 Agent: <Text style={styles.infoValue}>{agentName}</Text></Text>
-        <Text style={styles.infoText}>🏬 Warehouse: <Text style={styles.infoValue}>{warehouseName}</Text></Text>
+        <Text style={styles.infoText}>👤 Agent: <Text style={styles.infoValue}>{agentName} ,{warehouseName}</Text></Text>
+       
       </View>
 
       <FlatList
@@ -165,8 +165,8 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom:20,
+    paddingTop: 0,
+    paddingBottom:5,
   },
   infoText: {
     fontSize: 16,

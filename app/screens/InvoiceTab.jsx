@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
+    paddingTop: 0,
   },
   text: {
     fontSize: 18,

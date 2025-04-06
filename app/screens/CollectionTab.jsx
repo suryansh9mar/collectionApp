@@ -114,10 +114,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
+    paddingTop: 0,
+    marginTop: 0,
   },
   summaryContainer: {
     marginBottom: 20,
     padding: 15,
+    marginTop:0,
     backgroundColor: colors.accent,
     borderRadius: 10,
   },
