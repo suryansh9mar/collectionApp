@@ -23,7 +23,7 @@ const Home = ({ navigation, onLogOut }) => {
     try {
       const data = await AsyncStorage.getItem("authTokens");
       if (!data) throw new Error("No auth token found");
-      const { access_token,agent_name,warehouse_name } = JSON.parse(data);
+      const { access_token, agent_name, warehouse_name } = JSON.parse(data);
       const deviceInfo = await getDeviceInfo();
       setAgentName(agent_name || "N/A");
       setWarehouseName(warehouse_name || "N/A");
@@ -102,15 +102,15 @@ const Home = ({ navigation, onLogOut }) => {
       onPress: () => navigation.navigate("OrderForm"),
     },
     {
-      icon: "sync",
-      label: "Unsynced Collections",
-      onPress: () => navigation.navigate("UnsyncedCollections"), // screen you define
-      red: true,
+      icon: "clockcircleo",
+      label: "Pending Orders",
+      onPress: () => navigation.navigate("PendingOrders"),
+      red: false,
     },
     {
-      icon: "sync",
-      label: "Unsynced Orders",
-      // onPress: () => navigation.navigate("UnsyncedOrders"),
+      icon: "table",
+      label: "Reports",
+      onPress: () => navigation.navigate("Report"),
       red: true,
     },
   ];
@@ -120,8 +120,14 @@ const Home = ({ navigation, onLogOut }) => {
       style={[styles.boxButton, item.red && styles.redBox]}
       onPress={item.onPress}
     >
-      <AntDesign name={item.icon} size={30} color={item.red ? "#fff" : colors.primary} />
-      <Text style={[styles.buttonText, item.red && styles.redText]}>{item.label}</Text>
+      <AntDesign
+        name={item.icon}
+        size={30}
+        color={item.red ? "#fff" : colors.primary}
+      />
+      <Text style={[styles.buttonText, item.red && styles.redText]}>
+        {item.label}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -136,8 +142,14 @@ const Home = ({ navigation, onLogOut }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerInfo}>
-        <Text style={styles.infoText}>👤 Agent: <Text style={styles.infoValue}>{agentName} ,{warehouseName}</Text></Text>
-       
+        <Text style={styles.infoText}>
+          {" "}
+          <Text style={styles.infoValue}>{agentName} </Text>
+        </Text>
+        <Text style={styles.infoText}>
+          {" "}
+          <Text style={styles.infoValue}>{warehouseName}</Text>
+        </Text>
       </View>
 
       <FlatList
@@ -164,19 +176,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerInfo: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 40,
     paddingTop: 0,
-    paddingBottom:5,
+    paddingBottom: 5,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   infoText: {
     fontSize: 16,
-    marginBottom: 6,
     color: "#555",
   },
   infoValue: {
     fontWeight: "bold",
     color: colors.primary,
   },
+
   logoutButton: {
     marginRight: 15,
     padding: 8,
@@ -204,10 +220,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     marginHorizontal: 2,
     paddingHorizontal: 15,
-    paddingVertical:35,
+    paddingVertical: 35,
   },
   redBox: {
-    backgroundColor: "#ff4d4f", 
+    backgroundColor: "#ff4d4f",
   },
   redText: {
     color: "#fff",

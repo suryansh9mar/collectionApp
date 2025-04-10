@@ -24,38 +24,44 @@ export default function AddCollection({ route, navigation }) {
   const [openCustomer, setOpenCustomer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [openPayment, setOpenPayment] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
+  // const [isOffline, setIsOffline] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [paymentList, setPaymentList] = useState([
     { label: "CASH", value: "CASH" },
     { label: "UPI", value: "UPI" },
     { label: "CHEQUE", value: "CHEQUE" },
     { label: "BANK TRANSFER", value: "BANK_TRANSFER" },
-    { label: "CREDIT", value: "CREDIT" },
     { label: "DEBIT CARD", value: "DEBIT" },
     { label: "OTHER", value: "OTHER" },
   ]);
-  const { customer } = route?.params || {};
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const currentlyOffline = !state.isConnected;
+  const { customer, item } = route?.params || {};
+  // useEffect(() => {
+  //   const unsubscribe = NetInfo.addEventListener((state) => {
+  //     const currentlyOffline = !state.isConnected;
 
-      setIsOffline((prev) => {
-        if (prev !== currentlyOffline) {
-          // Optional: Toast or Alert when going offline
-          return currentlyOffline; // Only update if changed
-        }
-        return prev; // No update if same
-      });
-    });
+  //     setIsOffline((prev) => {
+  //       if (prev !== currentlyOffline) {
+  //         // Optional: Toast or Alert when going offline
+  //         return currentlyOffline; // Only update if changed
+  //       }
+  //       return prev; // No update if same
+  //     });
+  //   });
 
-    return () => unsubscribe();
-  }, []);
+  //   return () => unsubscribe();
+  // }, []);
   useEffect(() => {
     if (customer) {
+      console.log(customer);
       setSelectedCustomer(customer.id);
     }
+    if (item) {
+      setCollectionAmount(item.collectionAmount);
+      setPaymentMethod(item.paymentMethod);
+      setSelectedCustomer(item.selectedCustomer);
+    }
     getCustomers();
+    console.log(item);
   }, []);
 
   const getCustomers = async () => {
@@ -78,6 +84,57 @@ export default function AddCollection({ route, navigation }) {
       Alert.alert("Error", "Failed to load customers.");
     }
   };
+  //update customer
+  const handleUpdateCollection = async () => {
+    setIsLoading(true);
+    if (!paymentMethod) {
+      Alert.alert("Error", "Please select a payment method");
+      setIsLoading(false);
+      return;
+    }
+    if (!selectedCustomer) {
+      Alert.alert("Error", "Please select a customer.");
+      setIsLoading(false);
+      return;
+    }
+    if (!collectionAmount || isNaN(collectionAmount) || collectionAmount <= 0) {
+      Alert.alert("Error", "Enter a valid collection amount.");
+      setIsLoading(false);
+      return;
+    }
+    const today = new Date();
+    const currentDate = today.toLocaleDateString("en-CA");
+    try {
+      const payloads = await AsyncStorage.getItem("offlineCollections");
+      let offlineData = payloads ? JSON.parse(payloads) : [];
+      const updatedData = offlineData.map((entry) => {
+        if (entry.id === item.id) {
+          return {
+            ...entry,
+            id: item.id,
+            selectedCustomer,
+            selectedCustomerName,
+            collectionAmount,
+            paymentMethod,
+            currentDate,
+          };
+        }
+        return entry;
+      });
+      // console.log(updatedData);
+      await AsyncStorage.setItem(
+        "offlineCollections",
+        JSON.stringify(updatedData)
+      );
+      setIsLoading(false);
+      Alert.alert("Success", "Collection updated successfully.");
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update customer.");
+      console.log(error);
+      setIsLoading(false);
+    }
+  };
 
   const handleCustomerChange = (customerId) => {
     const customer = customerList.find((c) => c.value === customerId);
@@ -86,70 +143,73 @@ export default function AddCollection({ route, navigation }) {
     setSelectedCustomerName(customer?.label || "");
   };
 
-  const addColletionOnline = async (newPayLoad) => {
-    try {
-      const data = await AsyncStorage.getItem("authTokens");
-      const deviceInfo = await getDeviceInfo();
-      if (!data) throw new Error("No auth token found");
-      const { access_token, agent_id } = JSON.parse(data);
+  // const addColletionOnline = async (newPayLoad) => {
+  //   try {
+  //     const data = await AsyncStorage.getItem("authTokens");
+  //     const deviceInfo = await getDeviceInfo();
+  //     if (!data) throw new Error("No auth token found");
+  //     const { access_token, agent_id } = JSON.parse(data);
 
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
-        {
-          customer_id: newPayLoad.selectedCustomer,
-          payment_method: newPayLoad.paymentMethod,
-          amount: newPayLoad.collectionAmount,
-          date: newPayLoad.currentDate,
-          agent_id: agent_id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            "X-Device-ID": deviceInfo.deviceId,
-            "X-Device-Type": deviceInfo.deviceType,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+  //     const response = await axios.post(
+  //       `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
+  //       {
+  //         customer_id: newPayLoad.selectedCustomer,
+  //         payment_method: newPayLoad.paymentMethod,
+  //         amount: newPayLoad.collectionAmount,
+  //         date: newPayLoad.currentDate,
+  //         agent_id: agent_id,
+  //       },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${access_token}`,
+  //           "X-Device-ID": deviceInfo.deviceId,
+  //           "X-Device-Type": deviceInfo.deviceType,
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
 
-      if (response.status === 201) {
-        console.log("saved online");
-        const storedData = await AsyncStorage.getItem("offlineCollections");
-        if (storedData) {
-          const parsedData = JSON.parse(storedData);
+  //     if (response.status === 201) {
+  //       console.log("saved online");
+  //       const storedData = await AsyncStorage.getItem("offlineCollections");
+  //       if (storedData) {
+  //         const parsedData = JSON.parse(storedData);
 
-          // Filter out the object with the matching id
-          const updatedData = parsedData.filter(
-            (item) => item.id.toString() !== newPayLoad.id.toString()
-          );
+  //         // Filter out the object with the matching id
+  //         const updatedData = parsedData.filter(
+  //           (item) => item.id.toString() !== newPayLoad.id.toString()
+  //         );
 
-          // Save the updated array back to AsyncStorage
-          await AsyncStorage.setItem(
-            "offlineCollections",
-            JSON.stringify(updatedData)
-          );
-          console.log("Deleted successfully from local.", updatedData);
-          const check = await AsyncStorage.getItem("offlineCollections");
-          console.log("After deletion, AsyncStorage:", JSON.parse(check));
-        }
-      }
-    } catch (error) {
-      console.error("Error adding collection:", error);
-      console.log("not saved online");
-    }
-  };
+  //         // Save the updated array back to AsyncStorage
+  //         await AsyncStorage.setItem(
+  //           "offlineCollections",
+  //           JSON.stringify(updatedData)
+  //         );
+  //         console.log("Deleted successfully from local.", updatedData);
+  //         const check = await AsyncStorage.getItem("offlineCollections");
+  //         console.log("After deletion, AsyncStorage:", JSON.parse(check));
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error adding collection:", error);
+  //     console.log("not saved online");
+  //   }
+  // };
   const handleAddCollection = async () => {
     setIsLoading(true);
     if (!paymentMethod) {
       Alert.alert("Error", "Please select a payment method");
+      setIsLoading(false);
       return;
     }
     if (!selectedCustomer) {
       Alert.alert("Error", "Please select a customer.");
+      setIsLoading(false);
       return;
     }
     if (!collectionAmount || isNaN(collectionAmount) || collectionAmount <= 0) {
       Alert.alert("Error", "Enter a valid collection amount.");
+      setIsLoading(false);
       return;
     }
     const today = new Date();
@@ -175,9 +235,6 @@ export default function AddCollection({ route, navigation }) {
       setBalance(
         (prevBalance) => parseFloat(prevBalance) + parseFloat(collectionAmount)
       );
-      if (!isOffline) {
-        addColletionOnline(newPayLoad);
-      }
     } catch (error) {
       console.error("Error adding collection:", error);
       Alert.alert("Error", "Something went wrong");
@@ -249,8 +306,15 @@ export default function AddCollection({ route, navigation }) {
         onChangeText={setCollectionAmount}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleAddCollection}>
-        <Text style={styles.buttonText}>Add Collection</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={item ? handleUpdateCollection : handleAddCollection}
+      >
+        {item ? (
+          <Text style={styles.buttonText}>Update </Text>
+        ) : (
+          <Text style={styles.buttonText}>Add </Text>
+        )}
       </TouchableOpacity>
     </View>
   );

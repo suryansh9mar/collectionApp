@@ -17,7 +17,7 @@ import { colors } from "../assests/Colors";
 import { getDeviceInfo } from "../utlity/deviceInfo";
 import NetInfo from "@react-native-community/netinfo";
 
-const OrderForm = ({navigation}) => {
+const OrderForm = ({ navigation }) => {
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [unitName, setUnitName] = useState([]);
@@ -98,7 +98,12 @@ const OrderForm = ({navigation}) => {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => navigation.navigate("PendingOrders")}
-          style={{ marginRight: 20 ,backgroundColor:'white',padding:10,borderRadius:10}} 
+          style={{
+            marginRight: 20,
+            backgroundColor: "white",
+            padding: 10,
+            borderRadius: 10,
+          }}
         >
           <Text style={{ color: "#007bff", fontWeight: "bold" }}>Pending</Text>
         </TouchableOpacity>
@@ -229,7 +234,7 @@ const OrderForm = ({navigation}) => {
           : []),
       ];
       // console.log(units);
-      
+
       setUnitName(units);
     }
   };
@@ -238,12 +243,12 @@ const OrderForm = ({navigation}) => {
 
     if (unitId === 1) {
       setUnitPrice(baseUnitPrice);
-      setSelectedUnitId(unitName.find((u)=> u.value === unitId).id);
+      setSelectedUnitId(unitName.find((u) => u.value === unitId).id);
       // console.log("changed", unitName.find((u)=> u.value === unitId).id);
     }
     if (unitId == 2) {
       setUnitPrice(newPrice);
-      setSelectedUnitId(unitName.find((u)=> u.value === unitId)?.id);
+      setSelectedUnitId(unitName.find((u) => u.value === unitId)?.id);
       // console.log("changed", unitName.find((u)=> u.value === unitId).id);
     }
   };
@@ -277,7 +282,7 @@ const OrderForm = ({navigation}) => {
       unitPrice: parseFloat(unitPrice),
       itemTotal,
       conversion_rate: conversionRate,
-      unit_id: selectedUnitId
+      unit_id: selectedUnitId,
     };
 
     const updatedItems = [...addedItems, newItem];
@@ -317,7 +322,7 @@ const OrderForm = ({navigation}) => {
 
       const { access_token, agent_id, warehouse_id } = JSON.parse(authTokens);
       const today = new Date();
-    const currentDate = today.toLocaleDateString("en-CA");
+      const currentDate = today.toLocaleDateString("en-CA");
       const deviceInfo = await getDeviceInfo();
 
       const payload = {
@@ -327,10 +332,10 @@ const OrderForm = ({navigation}) => {
         warehouse_id: warehouse_id,
         invoice_date: currentDate,
         due_date: currentDate,
-        fare:  "0.00",
-        narration:  null,
+        fare: "0.00",
+        narration: null,
         sales_value: totalPrice.toFixed(2),
-        bill_amount: totalPrice.toFixed(2), 
+        bill_amount: totalPrice.toFixed(2),
         receipt_amount: "0.00",
         items: addedItems.map((item) => ({
           item_id: item.id,
@@ -343,7 +348,6 @@ const OrderForm = ({navigation}) => {
         })),
       };
       console.log(payload);
-      
 
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/sales-order/store`,
@@ -383,7 +387,7 @@ const OrderForm = ({navigation}) => {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Create Order</Text>
+        <Text style={styles.title}>Create </Text>
 
         {/* Customer Dropdown */}
         <View style={styles.dropdownWrapper}>
@@ -439,6 +443,7 @@ const OrderForm = ({navigation}) => {
 
                 setSelectedItem(val);
                 handleItemChange(val);
+                setSelectedUnit(1);
               }}
               items={items}
               placeholder="Select Item"

@@ -11,15 +11,15 @@ import {
   AddCollection,
   OrderForm,
   PendingCollection,
-  UnsyncedCollection,
   PendingOrders,
+  Report,
 } from "./app/screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-gesture-handler";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
-import { getDeviceInfo, saveDeviceInfo } from "./app/utlity/deviceInfo";
+import { saveDeviceInfo } from "./app/utlity/deviceInfo";
 
 const Stack = createStackNavigator();
 
@@ -49,7 +49,7 @@ export default function App() {
       setIsLoggedIn(false);
       await AsyncStorage.setItem("isLogged", "false");
       await AsyncStorage.clear();
-      await saveDeviceInfo()
+      await saveDeviceInfo();
     } catch (error) {
       console.error("Error during logout:", error);
     }
@@ -69,7 +69,7 @@ export default function App() {
               fontWeight: "bold",
               fontSize: 20,
             },
-            cardStyle: { backgroundColor: '#fff' },
+            cardStyle: { backgroundColor: "#fff" },
             cardStyleInterpolator: ({ current, layouts }) => ({
               cardStyle: {
                 transform: [
@@ -93,16 +93,16 @@ export default function App() {
               },
             }),
             gestureEnabled: true,
-            gestureDirection: 'horizontal',
+            gestureDirection: "horizontal",
             transitionSpec: {
               open: {
-                animation: 'timing',
+                animation: "timing",
                 config: {
                   duration: 300,
                 },
               },
               close: {
-                animation: 'timing',
+                animation: "timing",
                 config: {
                   duration: 300,
                 },
@@ -118,27 +118,27 @@ export default function App() {
               <Stack.Screen
                 name="AddCollection"
                 component={AddCollection}
-                options={{ headerShown: true }}
+                options={{ headerShown: true ,title:"Add Collection"}}
               />
               <Stack.Screen
-                name="UnsyncedCollections"
-                component={UnsyncedCollection}
+                name="Report"
+                component={Report}
                 options={{ headerShown: true }}
               />
               <Stack.Screen
                 name="PendingCollection"
                 component={PendingCollection}
-                options={{ headerShown: true }}
+                options={{ headerShown: true ,title:"Pending Collection"}}
               />
               <Stack.Screen
                 name="PendingOrders"
                 component={PendingOrders}
-                options={{ headerShown: true }}
+                options={{ headerShown: true ,title:"Pending Orders"}}
               />
               <Stack.Screen
                 name="OrderForm"
                 component={OrderForm}
-                options={{ headerShown: true , title:'Orders'}}
+                options={{ headerShown: true, title: "Orders" }}
               />
               <Stack.Screen
                 name="Customer"
@@ -191,4 +191,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-

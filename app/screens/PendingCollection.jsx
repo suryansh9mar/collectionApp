@@ -21,6 +21,7 @@ const PendingCollection = ({ navigation }) => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [filterAgentOnly, setFilterAgentOnly] = useState(false);
+  const [id, setId] = useState(1);
 
   const fetchPendingCollections = useCallback(async () => {
     setLoading(true);
@@ -117,12 +118,16 @@ const PendingCollection = ({ navigation }) => {
     applyFilter(search, newValue);
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item, index }) => (
     <View style={styles.row}>
-      <Text style={styles.cellId}>{item.id}</Text>
+      {filterAgentOnly ? (
+        <Text style={styles.cellId}>{index +1}</Text>
+      ) : (
+        <Text style={styles.cellId}>{item.id}</Text>
+      )}
       <Text style={styles.cellDate}>{item.date}</Text>
-      <Text style={styles.cellName}>{item.agent_name}</Text>
-      <Text style={styles.cellName}>{item.customer_name}</Text>
+      <Text style={styles.cellAgent}>{item.agent_name}</Text>
+      <Text style={styles.cellCustomer}>{item.customer_name}</Text>
       <Text style={styles.cellAmount}>{item.amount}</Text>
     </View>
   );
@@ -159,8 +164,8 @@ const PendingCollection = ({ navigation }) => {
           <View style={styles.headerRow}>
             <Text style={[styles.cellId, styles.headerCell]}>ID</Text>
             <Text style={[styles.cellDate, styles.headerCell]}>Date</Text>
-            <Text style={[styles.cellName, styles.headerCell]}>Agent</Text>
-            <Text style={[styles.cellName, styles.headerCell]}>Customer</Text>
+            <Text style={[styles.cellAgent, styles.headerCell]}>Agent</Text>
+            <Text style={[styles.cellCustomer, styles.headerCell]}>Customer</Text>
             <Text style={[styles.cellAmount, styles.headerCell]}>Amount</Text>
           </View>
 
@@ -173,7 +178,7 @@ const PendingCollection = ({ navigation }) => {
           ) : (
             <FlatList
               data={filteredData}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item , index) => item.id.toString() || index.toString()}
               renderItem={renderItem}
               ListEmptyComponent={
                 <Text style={styles.noDataText}>
@@ -200,11 +205,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: colors.primary,
-  },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -224,11 +224,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
   },
-
   checkboxChecked: {
     backgroundColor: colors.primary,
   },
-
   checkboxTick: {
     color: "#fff",
     fontSize: 14,
@@ -250,6 +248,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     marginBottom: 4,
+    paddingHorizontal: 12,
     minWidth: 600,
   },
   row: {
@@ -258,32 +257,41 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 4,
     borderRadius: 8,
+    paddingHorizontal: 12,
     minWidth: 600,
   },
+  cell: {
+    fontSize: 14,
+    color: colors.primary,
+    paddingHorizontal: 4,
+  },
+  
   cellId: {
-    width: 50,
-    textAlign: "center",
-    fontSize: 14,
-    color: colors.primary,
+    flex: 0.5,
+    textAlign: "left",
   },
+  
   cellDate: {
-    width: 90,
-    textAlign: "center",
-    fontSize: 14,
-    color: colors.primary,
+    flex: 1.2,
+    textAlign: "left",
   },
-  cellName: {
-    width: 130,
+  
+  cellAgent: {
+    flex: 1.3,
     textAlign: "center",
-    fontSize: 14,
-    color: colors.primary,
   },
+  
+  cellCustomer: {
+    flex: 1.7,
+    textAlign: "center",
+    minWidth: 200,
+  },
+  
   cellAmount: {
-    width: 90,
-    textAlign: "center",
-    fontSize: 14,
-    color: colors.primary,
-  },
+    flex: 1,
+    textAlign: "right",
+    paddingRight: 10,
+  }, 
   headerCell: {
     color: "#fff",
     fontWeight: "bold",
