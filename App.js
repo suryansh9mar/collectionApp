@@ -92,8 +92,7 @@ export default function App() {
                 }),
               },
             }),
-            gestureEnabled: true,
-            gestureDirection: "horizontal",
+            gestureEnabled: false,
             transitionSpec: {
               open: {
                 animation: "timing",

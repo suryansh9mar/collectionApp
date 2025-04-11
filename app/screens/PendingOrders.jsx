@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   customerText: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 4,
   },
   searchInput: {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   itemText: {
-    fontSize: 14,
+    fontSize: 12,
     marginLeft: 8,
   },
   deleteButton: {

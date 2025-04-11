@@ -250,19 +250,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customerName: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#FFF",
   },
   dueAmount: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.primary,
     marginTop: 5,
   },
   detailsButton: {
     backgroundColor: colors.secondry,
-    padding: 10,
+    padding: 8,
     borderRadius: 5,
-    marginTop: 10,
+    marginTop: 8,
     position: "absolute",
     right: 10,
     top: 15,

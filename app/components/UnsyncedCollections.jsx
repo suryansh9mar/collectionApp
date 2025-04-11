@@ -10,7 +10,6 @@ import {
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useState,
 } from "react";
 import NetInfo from "@react-native-community/netinfo";
@@ -54,10 +53,10 @@ export default function UnsyncedCollections() {
         const data = await AsyncStorage.getItem("offlineCollections");
         if (data) {
           setAllCollections(JSON.parse(data));
-          console.log("Loaded offline collections :", JSON.parse(data));
+          // console.log("Loaded offline collections :", JSON.parse(data));
         } else {
           setAllCollections([]);
-          console.log("no dta");
+          console.log("no data");
         }
       };
 
@@ -131,7 +130,7 @@ export default function UnsyncedCollections() {
     for (let item of allCollections) {
       const isSelected = selectedCustomer[item.id];
       if (!isSelected) {
-        unsynced.push(item); // keep unselected as is
+        unsynced.push(item); // keep unselected as it is
         continue;
       }
   

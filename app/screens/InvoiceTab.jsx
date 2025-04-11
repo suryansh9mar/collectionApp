@@ -55,18 +55,23 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   text: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "bold",
   },
   collectionCard: {
-    backgroundColor: colors.accent,
+    backgroundColor: "#fff",
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
   collectionText: {
-    fontSize: 16,
-    color: "#FFF",
+    fontSize: 14,
+    // color: "#FFF",
   },
 });
 

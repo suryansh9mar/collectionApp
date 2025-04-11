@@ -15,14 +15,12 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "../assests/Colors";
 import { getDeviceInfo } from "../utlity/deviceInfo";
-import NetInfo from "@react-native-community/netinfo";
 
-const OrderForm = ({ navigation }) => {
+const OrderForm = ({ route, navigation }) => {
+  const { item } = route?.params || {};
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [unitName, setUnitName] = useState([]);
-  const [isOffline, setIsOffline] = useState(false);
-
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -32,7 +30,7 @@ const OrderForm = ({ navigation }) => {
   const [selectedUnitId, setSelectedUnitId] = useState("");
   const [unitPrice, setUnitPrice] = useState(null);
   const [conversionRate, setConversionRate] = useState("");
-
+  const [selectedCustomerName, setSelectedCustomerName] = useState(null);
   const [priceCategoryId, setPriceCategoryId] = useState(null);
   const [addedItems, setAddedItems] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -78,43 +76,38 @@ const OrderForm = ({ navigation }) => {
     setItemOpen(false);
     setUnitOpen(true);
   }, []);
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const currentlyOffline = !state.isConnected;
 
-      setIsOffline((prev) => {
-        if (prev !== currentlyOffline) {
-          // Optional: Toast or Alert when going offline
-          return currentlyOffline; // Only update if changed
-        }
-        return prev; // No update if same
+  useEffect(() => {
+    console.log(item);
+    if (item) {
+      // setAddedItems([item.items]);
+      setSelectedCustomer(item.customer_id);
+      setPaymentMethod(item.payment_method);
+      setTotalPrice(item.bill_amount);
+      item.items.map((item) => {
+        const newItem = {
+          id: item.item_id,
+          name: item.name,
+          quantity: item.quantity,
+          unitName: item.unitName,
+          unitPrice: parseFloat(item.unit_price),
+          itemTotal: item.itemTotal,
+          conversion_rate: item.conversion_rate,
+          unit_id: item.unitName,
+        };
+        setAddedItems((prevItems) => [...prevItems, newItem]);
       });
-    });
-
-    return () => unsubscribe();
-  }, []);
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("PendingOrders")}
-          style={{
-            marginRight: 20,
-            backgroundColor: "white",
-            padding: 10,
-            borderRadius: 10,
-          }}
-        >
-          <Text style={{ color: "#007bff", fontWeight: "bold" }}>Pending</Text>
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
-
-  useEffect(() => {
+    }
     fetchCustomers();
     fetchItems();
   }, []);
+  useEffect(() => {
+    navigation.setOptions({
+      title: `${item?.id ? "Update Order" : "Create Order"}`,
+      headerShown: true,
+      
+    });
+  }, [navigation]);
 
   const fetchCustomers = async () => {
     try {
@@ -202,6 +195,7 @@ const OrderForm = ({ navigation }) => {
     const customer = customers.find((c) => c.value === customerId);
     if (customer) {
       setPriceCategoryId(customer.price_category_id);
+      setSelectedCustomerName(customer.label);
     }
     // console.log(customer.price_category_id);
   };
@@ -302,40 +296,93 @@ const OrderForm = ({ navigation }) => {
     setAddedItems(updatedItems);
     setTotalPrice((prev) => prev - itemToRemove.itemTotal);
   };
-
-  const handlePlaceOrder = async () => {
+  const saveOrderOffline = async () => {
     if (!selectedCustomer || !paymentMethod || addedItems.length === 0) {
       Alert.alert("Error", "Please fill all required fields");
       return;
     }
-    if (isOffline) {
-      Alert.alert("Error", "Please connect to internet");
-      return;
-    }
-
     setLoading(true);
     try {
+      const today = new Date();
+      const currentDate = today.toLocaleDateString("en-CA");
       const authTokens = await AsyncStorage.getItem("authTokens");
       if (!authTokens) {
         throw new Error("No auth tokens found");
       }
+      const { agent_id, warehouse_id } = JSON.parse(authTokens);
 
-      const { access_token, agent_id, warehouse_id } = JSON.parse(authTokens);
+      const newOrder = {
+        id: Date.now().toString(), // unique local ID
+        // agent_id: agent_id,
+        customer_id: selectedCustomer,
+        customer_name: selectedCustomerName,
+        payment_method: paymentMethod,
+        // warehouse_id: warehouse_id,
+        invoice_date: currentDate,
+        due_date: currentDate,
+        // fare: "0.00",
+        // narration: null,
+        sales_value: totalPrice,
+        bill_amount: totalPrice,
+        // receipt_amount: "0.00",
+        items: addedItems.map((item) => ({
+          item_id: item.id,
+          quantity: item.quantity.toString(),
+          unit_id: item.unit_id,
+          unit_price: item.unitPrice.toString(),
+          conversion_rate: item.conversion_rate || "1.00",
+          name: item.name,
+          unitName: item.unitName,
+          itemTotal: item.itemTotal,
+        })),
+      };
+
+      const existingOrders = await AsyncStorage.getItem("offlineOrders");
+      let orders = existingOrders ? JSON.parse(existingOrders) : [];
+
+      orders.push(newOrder);
+      await AsyncStorage.setItem("offlineOrders", JSON.stringify(orders));
+
+      Alert.alert("Saved ", "Order saved for later sync.");
+      setAddedItems([]);
+      setTotalPrice(0);
+    } catch (error) {
+      console.log("Error saving order offline:", error);
+      Alert.alert("Error", "Failed to save order .");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleUpdateOrder = async () => {
+    if (!selectedCustomer || !paymentMethod || addedItems.length === 0) {
+      Alert.alert("Error", "Please fill all required fields");
+      return;
+    }
+  
+    setLoading(true);
+    try {
       const today = new Date();
       const currentDate = today.toLocaleDateString("en-CA");
-      const deviceInfo = await getDeviceInfo();
-
-      const payload = {
+      const authTokens = await AsyncStorage.getItem("authTokens");
+      if (!authTokens) {
+        throw new Error("No auth tokens found");
+      }
+  
+      const { agent_id, warehouse_id } = JSON.parse(authTokens);
+  
+      const updatedOrder = {
+        id: item.id, // Keep the same ID
         agent_id: agent_id,
         customer_id: selectedCustomer,
+        customer_name: selectedCustomerName,
         payment_method: paymentMethod,
         warehouse_id: warehouse_id,
         invoice_date: currentDate,
         due_date: currentDate,
         fare: "0.00",
         narration: null,
-        sales_value: totalPrice.toFixed(2),
-        bill_amount: totalPrice.toFixed(2),
+        sales_value: totalPrice,
+        bill_amount: totalPrice,
         receipt_amount: "0.00",
         items: addedItems.map((item) => ({
           item_id: item.id,
@@ -345,37 +392,27 @@ const OrderForm = ({ navigation }) => {
           conversion_rate: item.conversion_rate || "1.00",
           name: item.name,
           unitName: item.unitName,
+          itemTotal: item.itemTotal,
         })),
       };
-      console.log(payload);
-
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/sales-order/store`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            "X-Device-ID": deviceInfo.deviceId,
-            "X-Device-Type": deviceInfo.deviceType,
-          },
-        }
+  
+      const existingOrders = await AsyncStorage.getItem("offlineOrders");
+      let orders = existingOrders ? JSON.parse(existingOrders) : [];
+  
+      // Replace the order with the same id
+      const updatedOrders = orders.map((order) =>
+        order.id === item.id ? updatedOrder : order
       );
-
-      if (response.data.status) {
-        Alert.alert("Success", "Order placed successfully");
-        setAddedItems([]);
-        setTotalPrice(0);
-        // setSelectedCustomer(null);
-        // setPaymentMethod(null);
-      } else {
-        Alert.alert("Error", response.data.message || "Failed to place order");
-      }
+  
+      await AsyncStorage.setItem("offlineOrders", JSON.stringify(updatedOrders));
+  
+      Alert.alert("Updated", "Order updated successfully.");
+      setAddedItems([]);
+      setTotalPrice(0);
+      navigation.goBack();
     } catch (error) {
-      console.error("Place Order Error:", error);
-      Alert.alert(
-        "Error",
-        error.response?.data?.message || "Failed to place order"
-      );
+      console.log("Error updating order offline:", error);
+      Alert.alert("Error", "Failed to update order.");
     } finally {
       setLoading(false);
     }
@@ -533,7 +570,7 @@ const OrderForm = ({ navigation }) => {
             (!selectedCustomer || !paymentMethod || addedItems.length === 0) &&
               styles.disabledButton,
           ]}
-          onPress={handlePlaceOrder}
+          onPress={item?.id ? handleUpdateOrder : saveOrderOffline}
           disabled={
             !selectedCustomer ||
             !paymentMethod ||
@@ -542,7 +579,11 @@ const OrderForm = ({ navigation }) => {
           }
         >
           <Text style={styles.buttonText}>
-            {loading ? "Processing..." : "Place Order"}
+            {item?.id
+              ? "Update Order"
+              : loading
+              ? "Processing..."
+              : "Place Order"}
           </Text>
         </TouchableOpacity>
       </ScrollView>
