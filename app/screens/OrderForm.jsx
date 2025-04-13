@@ -424,7 +424,7 @@ const OrderForm = ({ route, navigation }) => {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Create </Text>
+        {/* <Text style={styles.title}>Create </Text> */}
 
         {/* Customer Dropdown */}
         <View style={styles.dropdownWrapper}>
@@ -461,7 +461,7 @@ const OrderForm = ({ route, navigation }) => {
             dropDownContainerStyle={styles.dropDownContainer}
             zIndex={2000}
             zIndexInverse={2000}
-            listMode="MODAL"
+            listMode="SCROLLVIEW"
             onClose={() => setPaymentOpen(false)}
           />
         </View>

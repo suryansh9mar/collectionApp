@@ -7,11 +7,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -29,6 +25,7 @@ export default function UnsyncedCollections() {
   const [selectedCustomer, setSelectedCustomer] = useState({});
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [filterDate, setFilterDate] = useState(null);
+  const [isDataEmpty, setIsDataEmpty] = useState(false);
   const navigation = useNavigation();
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -51,11 +48,14 @@ export default function UnsyncedCollections() {
       console.log("UnsyncedCollection screen focused");
       const loadCollections = async () => {
         const data = await AsyncStorage.getItem("offlineCollections");
-        if (data) {
+        if (data.length > 0) {
+          setIsDataEmpty(false);
           setAllCollections(JSON.parse(data));
+          setIsDataEmpty(false);
           // console.log("Loaded offline collections :", JSON.parse(data));
         } else {
           setAllCollections([]);
+          setIsDataEmpty(true);
           console.log("no data");
         }
       };
@@ -101,39 +101,41 @@ export default function UnsyncedCollections() {
     setAllCollections(newData);
     await AsyncStorage.setItem("offlineCollections", JSON.stringify(newData));
   };
-  
+
   //sync collection
   const handleSync = async () => {
     if (isOffline) {
       Alert.alert("No Internet", "Please check your internet connection.");
       return;
     }
-  
-    const selectedCustomerToSync = allCollections.filter((item) => selectedCustomer[item.id]);
+
+    const selectedCustomerToSync = allCollections.filter(
+      (item) => selectedCustomer[item.id]
+    );
     setLoading(true);
-  
+
     if (selectedCustomerToSync.length === 0) {
       Alert.alert("Error", "Please select at least one collection to sync.");
       setLoading(false);
       return;
     }
-  
+
     const data = await AsyncStorage.getItem("authTokens");
     const deviceInfo = await getDeviceInfo();
     if (!data) return Alert.alert("Error", "Auth token missing");
-  
+
     const { access_token, agent_id } = JSON.parse(data);
-  
+
     let synced = 0;
     const unsynced = [];
-  
+
     for (let item of allCollections) {
       const isSelected = selectedCustomer[item.id];
       if (!isSelected) {
         unsynced.push(item); // keep unselected as it is
         continue;
       }
-  
+
       try {
         const res = await axios.post(
           `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/collections/store`,
@@ -153,7 +155,7 @@ export default function UnsyncedCollections() {
             },
           }
         );
-  
+
         if (res.status === 201) {
           console.log("Saved online:", item.id);
           synced++;
@@ -165,18 +167,17 @@ export default function UnsyncedCollections() {
         unsynced.push(item); // on error, keep the item
       }
     }
-  
+
     // Update state and storage
     setAllCollections(unsynced);
     await AsyncStorage.setItem("offlineCollections", JSON.stringify(unsynced));
     setSelectedCustomer({});
     setSelectAll(false);
-  
+
     Alert.alert("Sync Complete", `${synced} item(s) synced`);
     setLoading(false);
   };
-  
- 
+
   const renderItem = ({ item }) => (
     <View style={styles.row}>
       <TouchableOpacity
@@ -210,30 +211,32 @@ export default function UnsyncedCollections() {
     </View>
   );
   if (loading) {
-     return (
-       <View style={styles.loaderContainer}>
-         <ActivityIndicator size="large" color={colors.primary} />
-       </View>
-     );
-   }
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.dateButton}>
-            {filterDate ? filterDate.toDateString() : "Select Date"}
-          </Text>
-        </TouchableOpacity>
+      {!isDataEmpty && (
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateButton}>
+              {filterDate ? filterDate.toDateString() : "Select Date"}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleSelectAll}>
-          <Text style={styles.selectAll}>
-            {selectAll ? "Unselect All" : "Select All"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={handleSelectAll}>
+            <Text style={styles.selectAll}>
+              {selectAll ? "Unselect All" : "Select All"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {showDatePicker && (
+      {showDatePicker && !isDataEmpty && (
         <DateTimePicker
           value={filterDate || new Date()}
           mode="date"
@@ -249,14 +252,18 @@ export default function UnsyncedCollections() {
         data={filteredCollections}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No offline data.</Text>
-        }
+        ListEmptyComponent={() => {
+          setIsDataEmpty(true);
+          return <Text style={styles.emptyText}>No offline data.</Text>;
+        }}
       />
 
-      <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
-        <Text style={styles.syncText}>Sync Selected</Text>
-      </TouchableOpacity>
+      {!isDataEmpty &&
+        Object.values(selectedCustomer).some((isSelected) => isSelected) && (
+          <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
+            <Text style={styles.syncText}>Sync Selected</Text>
+          </TouchableOpacity>
+        )}
     </View>
   );
 }

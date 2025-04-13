@@ -248,8 +248,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     marginBottom: 4,
-    paddingHorizontal: 12,
-    minWidth: 600,
+    paddingHorizontal: 10,
+    // marginHorizontal:20,
+    minWidth: 500,
   },
   row: {
     flexDirection: "row",
@@ -257,8 +258,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 4,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    minWidth: 600,
+    // paddingHorizontal: 12,
+    minWidth: 350,
   },
   cell: {
     fontSize: 14,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   
   cellId: {
     flex: 0.5,
-    textAlign: "left",
+    textAlign: "left",paddingLeft: 10,
   },
   
   cellDate: {
@@ -278,13 +279,13 @@ const styles = StyleSheet.create({
   
   cellAgent: {
     flex: 1.3,
-    textAlign: "center",
+    textAlign: "left",
   },
   
   cellCustomer: {
     flex: 1.7,
-    textAlign: "center",
-    minWidth: 200,
+    textAlign: "left",
+    minWidth: 150,
   },
   
   cellAmount: {
@@ -295,6 +296,7 @@ const styles = StyleSheet.create({
   headerCell: {
     color: "#fff",
     fontWeight: "bold",
+    marginEnd:30,
   },
   noDataText: {
     marginTop: 20,

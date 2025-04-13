@@ -10,57 +10,144 @@ const Invoice = ({ route }) => {
   const generatePDF = async () => {
     try {
       const html = `
-        <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .header { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
-              .info { margin: 10px 0; }
-              .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-              .table, .table th, .table td { border: 1px solid black; padding: 10px; text-align: left; }
-              .total { font-weight: bold; font-size: 18px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">Invoice - ${invoiceData.invoice_id}</div>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+            .header { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+            .details-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 10px 40px;
+            }
+            .detail-row { margin-bottom: 5px; }
+            .table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+              font-size: 13px;
+            }
+             .table td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+            .table th {
+              background-color: #f0f0f0;
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: center;
+            }
+            .summary-layout {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 20px;
+            }
+            .narration-box {
+              width: 48%;
+              padding: 10px;
+              border: 1px solid #ccc;
+              font-size: 13px;
+              background-color: #fafafa;
+            }
+            .amount-summary {
+              width: 48%;
+            }
+            .amount-summary table {
+              width: 100%;
+              font-size: 14px;
+              border-collapse: collapse;
+            }
+            .amount-summary td {
+              padding: 8px;
+            }
+            .summary-label {
+              text-align: right;
+              font-weight: bold;
+              width: 60%;
+            }
+            .summary-value {
+              text-align: left;
+              width: 40%;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">Sales Invoice</div>
 
-            <div class="info">
-              <p><strong>Customer:</strong> ${invoiceData.customer.name}</p>
-              <p><strong>Email:</strong> ${invoiceData.email}</p>
-              <p><strong>Warehouse:</strong> ${invoiceData.warehouse.name}</p>
-              <p><strong>Invoice Date:</strong> ${invoiceData.invoice_date}</p>
-              <p><strong>Due Date:</strong> ${invoiceData.due_date}</p>
+          <div class="section">
+            <div class="section-title">Basic Details</div>
+            <div class="details-grid">
+              <div class="detail-row"><strong>Invoice No:</strong> ${invoiceData.invoice_id}</div>
+              <div class="detail-row"><strong>Invoice Date:</strong> ${invoiceData.invoice_date}</div>
+              <div class="detail-row"><strong>Customer:</strong> ${invoiceData.customer.name}</div>
+              <div class="detail-row"><strong>Due Date:</strong> ${invoiceData.due_date}</div>
+              <div class="detail-row"><strong>Warehouse:</strong> ${invoiceData.warehouse.name}</div>
+              <div class="detail-row"><strong>Email:</strong> ${invoiceData.email}</div>
             </div>
+          </div>
 
+          <div class="section">
+            <div class="section-title">Items</div>
             <table class="table">
-              <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Total</th>
-              </tr>
-              ${invoiceData.items
-                .map(
-                  (item) => `
-                  <tr>
-                    <td>${item.item.name}</td>
-                    <td>${Math.abs(item.quantity)}</td>
-                    <td>₹${item.unit_price}</td>
-                    <td>₹${Math.abs(item.quantity) * item.unit_price}</td>
-                  </tr>
-                `
-                )
-                .join("")}
+              <thead>
+                <tr>
+                  <th>SN</th>
+                  <th>Item Name</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoiceData.items
+                  .map(
+                    (item, index) => ` 
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td>${item.item.name}</td>
+                      <td>${Math.abs(item.quantity)}</td>
+                      <td>₹${item.unit_price}/${item.unit.name}</td>
+                      <td style="text-align: right;">₹${Math.abs(item.quantity) * item.unit_price}</td>
+                    </tr>
+                  `
+                  )
+                  .join("")}
+              </tbody>
             </table>
+          </div>
 
-            <div class="info">
-              <p class="total">Sales Value: ₹${invoiceData.sales_value}</p>
-              <p class="total">Bill Amount: ₹${invoiceData.bill_amount}</p>
-              <p class="total">Receipt Amount: ₹${invoiceData.receipt_amount}</p>
+          <div class="section">
+            <div class="section-title">Summary</div>
+            <div class="summary-layout">
+              <div class="narration-box">
+                <strong>Narration:</strong><br/>
+                ${invoiceData.narration ? invoiceData.narration : "—"}
+              </div>
+
+              <div class="amount-summary">
+                <table>
+                  <tr>
+                    <td class="summary-label">Sale Value:</td>
+                    <td class="summary-value">₹${invoiceData.sales_value}</td>
+                  </tr>
+                  <tr>
+                    <td class="summary-label">Bill Amount:</td>
+                    <td class="summary-value">₹${invoiceData.bill_amount}</td>
+                  </tr>
+                  <tr>
+                    <td class="summary-label">Receipt Amount:</td>
+                    <td class="summary-value">₹${invoiceData.receipt_amount}</td>
+                  </tr>
+                </table>
+              </div>
             </div>
-          </body>
-        </html>
-      `;
+          </div>
+        </body>
+      </html>
+    `;
 
       const { uri } = await Print.printToFileAsync({ html });
       return uri;

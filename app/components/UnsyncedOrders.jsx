@@ -26,6 +26,7 @@ export default function UnsyncedOrders() {
   const [allOrders, setAllOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState({});
+  const [isDataEmpty, setIsDataEmpty] = useState(false);
 
   const navigation = useNavigation();
   //check if offline?
@@ -47,20 +48,34 @@ export default function UnsyncedOrders() {
   //load all orders
   useFocusEffect(
     useCallback(() => {
-      console.log("UnsyncedCollection screen focused");
       const loadOrders = async () => {
-        const data = await AsyncStorage.getItem("offlineOrders");
-        if (data) {
-          setAllOrders(JSON.parse(data));
-          console.log("Loaded offline orders :", JSON.parse(data));
-        } else {
+        try {
+          const data = await AsyncStorage.getItem("offlineOrders");
+
+          if (data) {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setIsDataEmpty(false);
+              setAllOrders(parsed);
+            } else {
+              setIsDataEmpty(true);
+              setAllOrders([]);
+            }
+          } else {
+            // when data is null
+            setIsDataEmpty(true);
+            setAllOrders([]);
+          }
+          console.log(isDataEmpty);
+        } catch (err) {
+          console.error("Failed to load offlineOrders", err);
+          setIsDataEmpty(true);
           setAllOrders([]);
-          console.log("no data");
         }
       };
 
       loadOrders();
-    }, [navigation])
+    }, [setAllOrders])
   );
   // set  filltered orders on the basis of date selected
   useEffect(() => {
@@ -177,13 +192,13 @@ export default function UnsyncedOrders() {
       } catch (error) {
         console.log("Sync error:", item.id, error);
         unsynced.push(item); // on error, keep the item
-      } 
+      }
     }
     setAllOrders(unsynced);
     await AsyncStorage.setItem("offlineOrders", JSON.stringify(unsynced));
     setSelectedOrder({});
     setSelectAll(false);
-  
+
     Alert.alert("Sync Complete", `${synced} order(s) synced`);
     setLoading(false);
   };
@@ -230,19 +245,21 @@ export default function UnsyncedOrders() {
   }
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.dateButton}>
-            {filterDate ? filterDate.toDateString() : "Select Date"}
-          </Text>
-        </TouchableOpacity>
+      {!isDataEmpty && (
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateButton}>
+              {filterDate ? filterDate.toDateString() : "Select Date"}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleSelectAll}>
-          <Text style={styles.selectAll}>
-            {selectAll ? "Unselect All" : "Select All"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={handleSelectAll}>
+            <Text style={styles.selectAll}>
+              {selectAll ? "Unselect All" : "Select All"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {showDatePicker && (
         <DateTimePicker
@@ -260,14 +277,17 @@ export default function UnsyncedOrders() {
         data={filteredOrders}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No offline data.</Text>
-        }
+        ListEmptyComponent={() => {
+          // setIsDataEmpty(true);
+          return <Text style={styles.emptyText}>No offline data.</Text>;
+        }}
       />
 
-      <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
-        <Text style={styles.syncText}>Sync Selected</Text>
-      </TouchableOpacity>
+      {!isDataEmpty && Object.values(selectedOrder).some((value) => value) && (
+        <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
+          <Text style={styles.syncText}>Sync Selected</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

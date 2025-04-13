@@ -34,7 +34,7 @@ const InvoiceScreen = ({ invoices, navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
       <FlatList
         data={invoices || []}
         keyExtractor={(item) => String(item.id)}
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
-    paddingTop: 0,
+    paddingTop: 10,
   },
   text: {
     fontSize: 14,

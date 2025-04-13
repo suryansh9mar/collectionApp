@@ -82,7 +82,7 @@ const CollectionTab = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
       <View style={styles.summaryContainer}>
         <Text style={styles.summaryText}>
           Total Due Amount: ₹{totalDueAmount}
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
-    paddingTop: 0,
+    paddingTop: 10,
     marginTop: 0,
   },
   summaryContainer: {

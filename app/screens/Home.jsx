@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AntDesign from "react-native-vector-icons/AntDesign";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getDeviceInfo } from "../utlity/deviceInfo";
@@ -72,6 +73,9 @@ const Home = ({ navigation, onLogOut }) => {
     navigation.setOptions({
       title: "Home",
       headerShown: true,
+      style: {
+        marginBottom: 0,
+      },
       headerRight: () => (
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <AntDesign name="logout" size={25} color={colors.primary} />
@@ -82,33 +86,33 @@ const Home = ({ navigation, onLogOut }) => {
 
   const menuItems = [
     {
-      icon: "profile",
-      label: "Customers",
-      onPress: () => navigation.navigate("Customer"),
-    },
-    {
-      icon: "wallet",
+      icon: "donate",
       label: "Add Collection",
       onPress: () => navigation.navigate("AddCollection"),
     },
     {
-      icon: "clockcircleo",
-      label: "Pending Collection",
-      onPress: () => navigation.navigate("PendingCollection"),
-    },
-    {
-      icon: "form",
+      icon: "file-alt",
       label: "Sales Order",
       onPress: () => navigation.navigate("OrderForm"),
     },
     {
-      icon: "clockcircleo",
+      icon: "clock",
       label: "Pending Orders",
       onPress: () => navigation.navigate("PendingOrders"),
       red: false,
     },
     {
-      icon: "table",
+      icon: "clock",
+      label: "Pending Collection",
+      onPress: () => navigation.navigate("PendingCollection"),
+    },
+    {
+      icon: "users",
+      label: "Customers",
+      onPress: () => navigation.navigate("Customer"),
+    },
+    {
+      icon: "chart-bar",
       label: "Reports",
       onPress: () => navigation.navigate("Report"),
       red: true,
@@ -120,9 +124,9 @@ const Home = ({ navigation, onLogOut }) => {
       style={[styles.boxButton, item.red && styles.redBox]}
       onPress={item.onPress}
     >
-      <AntDesign
+      <FontAwesome5
         name={item.icon}
-        size={30}
+        size={32}
         color={item.red ? "#fff" : colors.primary}
       />
       <Text style={[styles.buttonText, item.red && styles.redText]}>
@@ -140,15 +144,12 @@ const Home = ({ navigation, onLogOut }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
       <View style={styles.headerInfo}>
         <Text style={styles.infoText}>
-          {" "}
-          <Text style={styles.infoValue}>{agentName} </Text>
-        </Text>
-        <Text style={styles.infoText}>
-          {" "}
-          <Text style={styles.infoValue}>{warehouseName}</Text>
+          <Text style={styles.infoValue}>
+            {agentName},{warehouseName}
+          </Text>
         </Text>
       </View>
 
@@ -178,6 +179,7 @@ const styles = StyleSheet.create({
   headerInfo: {
     paddingHorizontal: 40,
     paddingTop: 0,
+    marginTop: 5,
     paddingBottom: 5,
     display: "flex",
     flexDirection: "row",

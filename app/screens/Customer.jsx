@@ -158,7 +158,7 @@ const Customer = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
-    paddingTop: 0,
+    paddingTop: 10,
   },
 
   searchContainer: {
