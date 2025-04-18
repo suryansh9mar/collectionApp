@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
+  Modal,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { colors } from "../assests/Colors";
@@ -27,6 +28,9 @@ export default function UnsyncedOrders() {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState({});
   const [isDataEmpty, setIsDataEmpty] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [selectedAmount, setSelectedAmount] = useState(0);
 
   const navigation = useNavigation();
   //check if offline?
@@ -108,6 +112,45 @@ export default function UnsyncedOrders() {
     });
     setSelectedOrder(updated);
   };
+  //calculate total amount of all orders and selected orders
+  useEffect(() => {
+    const selectedOrderToCalculateAmount = allOrders.filter(
+      (item) => selectedOrder[item.id]
+    );
+
+    const totalSelectedAmount = selectedOrderToCalculateAmount.reduce(
+      (acc, item) => acc + parseFloat(item.bill_amount),
+      0
+    );
+    const totalAmount = allOrders.reduce(
+      (acc, item) => acc + parseFloat(item.bill_amount),
+      0
+    );
+    setTotalAmount(totalAmount);
+    setSelectedAmount(totalSelectedAmount);
+  }, [selectedOrder, allOrders]);
+
+  const totalByPaymentMode = useMemo(() => {
+    const grouped = {};
+    allOrders.forEach((item) => {
+      const mode = item.payment_method || "Unknown";
+      grouped[mode] = (grouped[mode] || 0) + parseFloat(item.bill_amount || 0);
+    });
+    return grouped;
+  }, [allOrders]);
+
+  const selectedByPaymentMode = useMemo(() => {
+    const grouped = {};
+    allOrders.forEach((item) => {
+      if (selectedOrder[item.id]) {
+        const mode = item.payment_method || "Unknown";
+        grouped[mode] =
+          (grouped[mode] || 0) + parseFloat(item.bill_amount || 0);
+      }
+    });
+    return grouped;
+  }, [allOrders, selectedOrder]);
+
   //delete orders
   const deleteOrder = async (id) => {
     const newData = allOrders.filter((item) => item.id !== id);
@@ -282,12 +325,58 @@ export default function UnsyncedOrders() {
           return <Text style={styles.emptyText}>No offline data.</Text>;
         }}
       />
+      {!isDataEmpty && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setShowSummary(true)}
+        >
+          <AntDesign name="info" size={30} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       {!isDataEmpty && Object.values(selectedOrder).some((value) => value) && (
         <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
           <Text style={styles.syncText}>Sync Selected</Text>
         </TouchableOpacity>
       )}
+      {/* Show summary modal */}
+      <Modal visible={showSummary} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Summary</Text>
+
+            <Text style={styles.sectionTitle}>
+              Total Order Amount: ₹{totalAmount}
+            </Text>
+            {Object.entries(totalByPaymentMode).map(([mode, amount]) => (
+              <Text key={mode}>
+                {"   "}
+                {mode}: ₹{amount}
+              </Text>
+            ))}
+            {selectedAmount > 0 && (
+              <View>
+                <Text style={styles.sectionTitle}>
+                  Selected Order Amount: ₹{selectedAmount}
+                </Text>
+                {Object.entries(selectedByPaymentMode).map(([mode, amount]) => (
+                  <Text key={mode}>
+                    {"   "}
+                    {mode}: ₹{amount}
+                  </Text>
+                ))}
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={() => setShowSummary(false)}
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -297,6 +386,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 90,
+    backgroundColor: colors.primary,
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 5,
   },
   loaderContainer: {
     flex: 1,
@@ -340,4 +441,37 @@ const styles = StyleSheet.create({
   },
   syncText: { color: "#fff", fontWeight: "bold" },
   emptyText: { textAlign: "center", marginTop: 20, color: "#666" },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontWeight: "bold",
+    marginTop: 10,
+  },
+  closeButton: {
+    backgroundColor: colors.error,
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  closeText: {
+    color: "white",
+    fontWeight: "bold",
+  },
 });
