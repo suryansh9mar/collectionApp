@@ -168,11 +168,17 @@ const OrderForm = ({ route, navigation }) => {
           secondary_unit_id: item.secondary_unit_id,
           base_unit_id: item.base_unit_id,
         }));
-        console.log(itemList);
+        
+        // console.log(itemList);
+        const filterredItems = itemList.filter(
+          (item)=>item.prices.length > 0 
+        )
+        console.log(filterredItems);
+        
 
         // console.log(itemList.base_unit);
 
-        setItems(itemList);
+        setItems(filterredItems);
         await AsyncStorage.setItem("salesItems", JSON.stringify(itemList));
       } else {
         Alert.alert("Error", response.data.message || "Failed to fetch items");

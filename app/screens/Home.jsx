@@ -25,7 +25,12 @@ const Home = ({ navigation, onLogOut }) => {
       const data = await AsyncStorage.getItem("authTokens");
       if (!data) throw new Error("No auth token found");
       const { access_token, agent_name, warehouse_name } = JSON.parse(data);
+      // console.log("Access Token:", access_token);
+      
+      
       const deviceInfo = await getDeviceInfo();
+      // console.log("Device Info:", deviceInfo);
+      
       setAgentName(agent_name || "N/A");
       setWarehouseName(warehouse_name || "N/A");
       const response = await axios.post(
@@ -148,7 +153,7 @@ const Home = ({ navigation, onLogOut }) => {
       <View style={styles.headerInfo}>
         <Text style={styles.infoText}>
           <Text style={styles.infoValue}>
-            {agentName},{warehouseName}
+            {agentName} ,{warehouseName}
           </Text>
         </Text>
       </View>
